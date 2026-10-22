@@ -1,0 +1,38 @@
+name: CI · ai
+
+on:
+  pull_request:
+    paths: ["services/ai/**", ".github/workflows/ci-ai.yml"]
+  push:
+    branches: [main]
+    paths: ["services/ai/**"]
+
+concurrency:
+  group: ci-ai-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-service
+        with: { service: services/ai }
+      - working-directory: services/ai
+        run: uv run ruff check . && uv run ruff format --check .
+      - working-directory: services/ai
+        run: uv run mypy app
+
+  test:
+    # LLM calls are MOCKED here. Quality is measured by ai-evals.yml, which runs
+    # nightly because it makes real API calls and costs real money.
+    runs-on: ubuntu-latest
+    env:
+      INTERNAL_API_KEY: ci-only-internal-key
+      LLM_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-service
+        with: { service: services/ai }
+      - working-directory: services/ai
+        run: uv run pytest -m "not eval"

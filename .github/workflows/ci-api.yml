@@ -1,0 +1,68 @@
+name: CI · api
+
+# Path-filtered: a Flutter change must not run Python tests. This is what keeps
+# the monorepo's CI cost proportional to what actually changed.
+on:
+  pull_request:
+    paths: ["services/api/**", ".github/workflows/ci-api.yml"]
+  push:
+    branches: [main]
+    paths: ["services/api/**"]
+
+concurrency:
+  group: ci-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint · types · boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-service
+        with: { service: services/api }
+      - name: Ruff
+        working-directory: services/api
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Mypy
+        working-directory: services/api
+        run: uv run mypy app
+      # The rule that keeps the modular monolith modular. A module reaching into
+      # another module's models or repository fails here, before it can fuse the
+      # two together and make later extraction a rewrite.
+      - name: Module boundaries
+        working-directory: services/api
+        run: uv run lint-imports
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: janmaang
+          POSTGRES_PASSWORD: janmaang
+          POSTGRES_DB: janmaang_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U janmaang"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@localhost:5432/janmaang_test
+      REDIS_URL: redis://localhost:6379/0
+      AUTH_SECRET: ci-only-secret-value-not-real
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-service
+        with: { service: services/api }
+      - name: Migrations apply cleanly from scratch
+        working-directory: services/api
+        run: uv run alembic upgrade head
+      - name: Pytest
+        working-directory: services/api
+        run: uv run pytest --cov=app --cov-report=term-missing

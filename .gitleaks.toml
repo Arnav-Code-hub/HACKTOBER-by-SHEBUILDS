@@ -1,0 +1,32 @@
+# Secret scanning. Runs as a pre-commit hook AND in CI — the hook alone is
+# bypassable with `git commit --no-verify`, so CI is the real gate.
+title = "JanMaang secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gemini-api-key"
+description = "Google AI / Gemini API key"
+regex = '''AIza[0-9A-Za-z_\-]{35}'''
+tags = ["key", "google"]
+
+[[rules]]
+id = "firebase-service-account"
+description = "Firebase / GCP service account private key"
+regex = '''"type"\s*:\s*"service_account"'''
+tags = ["key", "gcp"]
+
+[allowlist]
+description = "Placeholders, fixtures and generated lockfiles"
+paths = [
+  '''\.env\.example$''',
+  '''.*\.example\..*''',
+  '''pnpm-lock\.yaml$''',
+  '''pubspec\.lock$''',
+  '''uv\.lock$''',
+  '''docs/.*\.md$''',
+]
+regexes = [
+  '''(?i)(your|example|placeholder|changeme|xxx+|<[a-z-]+>)''',
+]

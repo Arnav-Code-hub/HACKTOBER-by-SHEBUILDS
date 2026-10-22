@@ -1,0 +1,62 @@
+name: CI · mobile
+
+on:
+  pull_request:
+    paths: ["apps/mobile/**", ".github/workflows/ci-mobile.yml"]
+  push:
+    branches: [main]
+    paths: ["apps/mobile/**"]
+
+concurrency:
+  group: ci-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+
+  build-apk:
+    # Debug APK on main only. Release builds are tag-triggered and need signing
+    # keys, which no PR from a fork may ever see.
+    if: github.ref == 'refs/heads/main'
+    needs: analyze-and-test
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # firebase_options.dart and google-services.json are gitignored; CI writes
+      # them from secrets so a fork can never point at production.
+      - name: Write Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON not set — skipping APK build"
+            exit 0
+          fi
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: janmaang-debug-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7

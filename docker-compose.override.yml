@@ -1,0 +1,24 @@
+# Auto-loaded on top of docker-compose.yml for local development.
+# Bind-mounts source so the --reload flags in the base file actually see changes.
+# Never used in CI or production.
+
+services:
+  api:
+    volumes:
+      - ./services/api:/app
+      - /app/.venv          # keep the container's venv, not the host's
+  worker:
+    volumes:
+      - ./services/api:/app
+      - /app/.venv
+  ai:
+    volumes:
+      - ./services/ai:/app
+      - /app/.venv
+  web:
+    volumes:
+      - ./apps/web:/repo/apps/web
+      - ./packages:/repo/packages
+      - /repo/node_modules
+      - /repo/apps/web/node_modules
+      - /repo/apps/web/.next

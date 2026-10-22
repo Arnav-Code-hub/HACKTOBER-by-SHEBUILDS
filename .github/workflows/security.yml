@@ -1,0 +1,53 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"   # Monday 03:00 UTC
+
+jobs:
+  secrets:
+    name: Secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # full history: a secret committed then reverted is still leaked
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions: { security-events: write, actions: read, contents: read }
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with: { languages: "${{ matrix.language }}" }
+      - uses: github/codeql-action/analyze@v3
+
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high || echo "::warning::pnpm audit found advisories"
+      - uses: astral-sh/setup-uv@v3
+        with: { version: "0.5.4" }
+      - name: Python advisories
+        run: |
+          uvx pip-audit -r <(cd services/api && uv export --no-hashes 2>/dev/null) \
+            || echo "::warning::pip-audit found advisories in services/api"
+          uvx pip-audit -r <(cd services/ai && uv export --no-hashes 2>/dev/null) \
+            || echo "::warning::pip-audit found advisories in services/ai"

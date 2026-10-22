@@ -1,0 +1,31 @@
+name: CI · web
+
+on:
+  pull_request:
+    paths: ["apps/web/**", "packages/**", "package.json", "pnpm-lock.yaml", ".github/workflows/ci-web.yml"]
+  push:
+    branches: [main]
+    paths: ["apps/web/**", "packages/**"]
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r lint
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      # dist/tokens.css is generated from tokens.json and gitignored, and
+      # globals.css imports it — next build cannot resolve it otherwise.
+      - run: pnpm --filter @janmaang/tokens build
+      - run: pnpm --filter @janmaang/web build
