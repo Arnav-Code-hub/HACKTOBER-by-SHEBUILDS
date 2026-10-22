@@ -1,0 +1,113 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# JanMaang monorepo
+# ─────────────────────────────────────────────────────────────────────────────
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+.history
+# .vscode/ is committed on purpose: shared launch + task configs.
+
+# Logs and coverage
+*.log
+/coverage/
+**/coverage/
+htmlcov/
+.coverage
+.coverage.*
+
+# ─── Node / TypeScript (apps/web, packages/*, mobile Cloud Functions) ────────
+node_modules/
+.pnpm-store/
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+playwright-report/
+test-results/
+apps/mobile/firebase/functions/lib/
+
+# ─── Python (services/api, services/ai) ──────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# ─── Flutter / Dart (apps/mobile) ────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+apps/mobile/build/
+apps/mobile/android/app/debug
+apps/mobile/android/app/profile
+apps/mobile/android/app/release
+apps/mobile/android/local.properties
+.widget_preview/
+migrate_working_dir/
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# ─── SECRETS — never commit any of these ─────────────────────────────────────
+# Environment files. Only *.example is tracked.
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Firebase project config is generated per-environment by `flutterfire configure`.
+# Kept out of git so a fork cannot accidentally point at production.
+apps/mobile/lib/firebase_options.dart
+apps/mobile/android/app/google-services.json
+apps/mobile/ios/Runner/GoogleService-Info.plist
+apps/mobile/macos/Runner/GoogleService-Info.plist
+apps/mobile/config/*.local.json
+.firebaserc
+apps/mobile/firebase/.firebaserc
+
+# Server-side credentials. The Gemini key and any service account live in
+# Secret Manager and are injected at runtime — never in the repository.
+*serviceAccount*.json
+*service-account*.json
+*credentials*.json
+gha-creds-*.json
+
+# Android signing
+apps/mobile/android/key.properties
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+
+# Terraform state holds resolved secrets in plaintext.
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
+
+# ─── Large binaries: keep the repo cloneable ─────────────────────────────────
+# Model weights belong in object storage or DVC, never in git.
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.safetensors
+services/ai/evals/datasets/large/
+*.apk
+*.aab
+*.ipa

@@ -1,0 +1,35 @@
+name: AI evals
+
+# Evals are NOT tests. They make real LLM calls, cost real money and produce a
+# non-deterministic score. Nightly and manual only — never on the PR path.
+#
+# A prompt change is not reviewable without a re-run: attach the before/after
+# score table to the PR.
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite to run (blank = all)"
+        required: false
+        type: string
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    environment: development     # scoped secrets, not repo-wide
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-service
+        with: { service: services/ai }
+      - name: Run suites
+        working-directory: services/ai
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          DAILY_TOKEN_BUDGET: "500000"   # hard cap so a loop cannot drain the account
+        run: uv run python -m evals.report ${{ inputs.suite && format('--suite {0}', inputs.suite) || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: eval-report, path: services/ai/evals/out/, retention-days: 30 }
