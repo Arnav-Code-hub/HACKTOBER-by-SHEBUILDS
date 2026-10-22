@@ -1,5 +1,16 @@
 # Environments
 
+## Current implementation
+
+Staging hosting and automatic deployment are not configured. The workflow in
+`deploy-staging.yml` builds and publishes container images; it does not start
+servers or run migrations. It no longer creates deployment records for image
+builds. A manual `staging_url` input optionally checks an already-hosted API.
+Without that input the server check is skipped, not reported as a deployment.
+
+The environment matrix and operational rules below describe the intended setup.
+They are not evidence that hosting, backups or promotion are implemented.
+
 | | Development | Staging | Production |
 |---|---|---|---|
 | Where | Your laptop, docker compose | Cloud, auto-deployed | Cloud, manual + approval |

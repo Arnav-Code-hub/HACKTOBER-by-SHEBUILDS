@@ -2,7 +2,14 @@
 
 ## Deploy to staging
 
-Automatic on merge to `main`. Nothing to do.
+Hosting and automatic deployment are not configured yet. The **Build staging
+images** workflow publishes API, AI and web container images when code reaches
+`main`. Successful image builds do not mean a website is running.
+
+Once an API has been hosted, manually run **Build staging images** with its origin
+in `staging_url` to check it. Leave that input blank to build images only. The
+workflow does not deploy services or apply migrations. Pushing to `test` does not
+trigger this workflow automatically.
 
 ## Deploy to production
 
