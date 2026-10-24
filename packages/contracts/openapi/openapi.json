@@ -108,9 +108,32 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "boolean",
-              "default": true,
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Mine"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           },
           {
@@ -192,6 +215,302 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReportRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/validate": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Validate",
+        "operationId": "validate_api_v1_reports__report_id__validate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateReport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/cluster-suggestions": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Suggest Clusters",
+        "operationId": "suggest_clusters_api_v1_reports__report_id__cluster_suggestions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClusterSuggestions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/cluster": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Confirm Cluster",
+        "operationId": "confirm_cluster_api_v1_reports__report_id__cluster_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignCluster"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clusters/ranked": {
+      "get": {
+        "tags": [
+          "Clusters"
+        ],
+        "summary": "Ranked",
+        "operationId": "ranked_api_v1_clusters_ranked_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankedClusters"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/clusters/{cluster_id}/inputs": {
+      "patch": {
+        "tags": [
+          "Clusters"
+        ],
+        "summary": "Inputs",
+        "operationId": "inputs_api_v1_clusters__cluster_id__inputs_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cluster_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cluster Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RankingInputs"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clusters/{cluster_id}/support": {
+      "post": {
+        "tags": [
+          "Clusters"
+        ],
+        "summary": "Support",
+        "operationId": "support_api_v1_clusters__cluster_id__support_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cluster_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Cluster Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportAck"
                 }
               }
             }
@@ -304,6 +623,37 @@
   },
   "components": {
     "schemas": {
+      "AssignCluster": {
+        "properties": {
+          "cluster_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster Id"
+          },
+          "new": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "const": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AssignCluster"
+      },
       "Category": {
         "type": "string",
         "enum": [
@@ -319,6 +669,63 @@
         ],
         "title": "Category"
       },
+      "ClusterSuggestion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "distance_m": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Distance M"
+          },
+          "report_count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Report Count"
+          },
+          "supporter_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Supporter Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "distance_m",
+          "report_count",
+          "supporter_count"
+        ],
+        "title": "ClusterSuggestion"
+      },
+      "ClusterSuggestions": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ClusterSuggestion"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ClusterSuggestions"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -331,6 +738,20 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "IdentityAck": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "IdentityAck"
       },
       "MediaRead": {
         "properties": {
@@ -370,6 +791,129 @@
         ],
         "title": "ProblemStatus",
         "description": "The agreed report lifecycle. Mirrored by the Flutter mapping in\napps/mobile/lib/features/report/data/report_dto.dart and documented in\ndocs/api/day1-frontend-contract.md \u2014 change all three together.\n\nVERIFIED means validated by the Panchayat. Citizen confirmation of a repair\nis CITIZEN_VERIFIED."
+      },
+      "RankedCluster": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProblemStatus"
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Rank"
+          },
+          "priority_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Priority Score"
+          },
+          "supporter_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Supporter Count"
+          },
+          "report_count": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Report Count"
+          },
+          "anchor_report_code": {
+            "type": "string",
+            "title": "Anchor Report Code"
+          },
+          "infrastructure_gap": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Infrastructure Gap"
+          },
+          "equity_index": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Equity Index"
+          },
+          "inputs_are_demo": {
+            "type": "boolean",
+            "title": "Inputs Are Demo"
+          },
+          "score_breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreFactor"
+            },
+            "type": "array",
+            "title": "Score Breakdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "status",
+          "rank",
+          "priority_score",
+          "supporter_count",
+          "report_count",
+          "anchor_report_code",
+          "infrastructure_gap",
+          "equity_index",
+          "inputs_are_demo",
+          "score_breakdown"
+        ],
+        "title": "RankedCluster"
+      },
+      "RankedClusters": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RankedCluster"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "RankedClusters"
+      },
+      "RankingInputs": {
+        "properties": {
+          "infrastructure_gap": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Infrastructure Gap"
+          },
+          "equity_index": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Equity Index"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "infrastructure_gap",
+          "equity_index"
+        ],
+        "title": "RankingInputs"
       },
       "ReportCreate": {
         "properties": {
@@ -569,6 +1113,64 @@
             },
             "type": "array",
             "title": "Media"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "total_ranked": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Ranked"
+          },
+          "priority_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Score"
+          },
+          "supporter_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supporter Count"
+          },
+          "score_breakdown": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ScoreFactor"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Breakdown"
           }
         },
         "type": "object",
@@ -614,6 +1216,50 @@
         "title": "Role",
         "description": "Every role in JanMaang.\n\nCITIZEN is the mobile app's role and has no web dashboard; the other nine\nare web roles."
       },
+      "ScoreFactor": {
+        "properties": {
+          "factor": {
+            "type": "string",
+            "enum": [
+              "support",
+              "gap",
+              "equity",
+              "severity",
+              "age"
+            ],
+            "title": "Factor"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "weight": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Weight"
+          },
+          "is_demo": {
+            "type": "boolean",
+            "title": "Is Demo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "factor",
+          "label",
+          "score",
+          "weight",
+          "is_demo"
+        ],
+        "title": "ScoreFactor"
+      },
       "Severity": {
         "type": "string",
         "enum": [
@@ -623,6 +1269,44 @@
           "critical"
         ],
         "title": "Severity"
+      },
+      "StatusAck": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProblemStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "StatusAck"
+      },
+      "SupportAck": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "supporter_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Supporter Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "supporter_count"
+        ],
+        "title": "SupportAck"
       },
       "UploadAuthorization": {
         "properties": {
@@ -816,6 +1500,37 @@
           "is_demo"
         ],
         "title": "UserProfile"
+      },
+      "ValidateReport": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "verify",
+              "reject"
+            ],
+            "title": "Decision"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "ValidateReport"
       },
       "ValidationError": {
         "properties": {

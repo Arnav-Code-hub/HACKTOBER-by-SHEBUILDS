@@ -56,6 +56,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/{report_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate */
+        post: operations["validate_api_v1_reports__report_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{report_id}/cluster-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggest Clusters */
+        get: operations["suggest_clusters_api_v1_reports__report_id__cluster_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{report_id}/cluster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Cluster */
+        post: operations["confirm_cluster_api_v1_reports__report_id__cluster_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clusters/ranked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ranked */
+        get: operations["ranked_api_v1_clusters_ranked_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clusters/{cluster_id}/inputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Inputs */
+        patch: operations["inputs_api_v1_clusters__cluster_id__inputs_patch"];
+        trace?: never;
+    };
+    "/api/v1/clusters/{cluster_id}/support": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Support */
+        post: operations["support_api_v1_clusters__cluster_id__support_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/media/signature": {
         parameters: {
             query?: never;
@@ -94,15 +196,52 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AssignCluster */
+        AssignCluster: {
+            /** Cluster Id */
+            cluster_id?: string | null;
+            /** New */
+            new?: true | null;
+        };
         /**
          * Category
          * @enum {string}
          */
         Category: "water" | "roads" | "lighting" | "sanitation" | "health" | "education" | "electricity" | "transport" | "other";
+        /** ClusterSuggestion */
+        ClusterSuggestion: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            category: components["schemas"]["Category"];
+            /** Distance M */
+            distance_m: number;
+            /** Report Count */
+            report_count: number;
+            /** Supporter Count */
+            supporter_count: number;
+        };
+        /** ClusterSuggestions */
+        ClusterSuggestions: {
+            /** Items */
+            items: components["schemas"]["ClusterSuggestion"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** IdentityAck */
+        IdentityAck: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
         };
         /** MediaRead */
         MediaRead: {
@@ -127,6 +266,48 @@ export interface components {
          * @enum {string}
          */
         ProblemStatus: "reported" | "verified" | "rejected" | "prioritised" | "funded" | "in_progress" | "awaiting_verification" | "citizen_verified";
+        /** RankedCluster */
+        RankedCluster: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            category: components["schemas"]["Category"];
+            status: components["schemas"]["ProblemStatus"];
+            /** Rank */
+            rank: number;
+            /** Priority Score */
+            priority_score: number;
+            /** Supporter Count */
+            supporter_count: number;
+            /** Report Count */
+            report_count: number;
+            /** Anchor Report Code */
+            anchor_report_code: string;
+            /** Infrastructure Gap */
+            infrastructure_gap: number;
+            /** Equity Index */
+            equity_index: number;
+            /** Inputs Are Demo */
+            inputs_are_demo: boolean;
+            /** Score Breakdown */
+            score_breakdown: components["schemas"]["ScoreFactor"][];
+        };
+        /** RankedClusters */
+        RankedClusters: {
+            /** Items */
+            items: components["schemas"]["RankedCluster"][];
+        };
+        /** RankingInputs */
+        RankingInputs: {
+            /** Infrastructure Gap */
+            infrastructure_gap: number;
+            /** Equity Index */
+            equity_index: number;
+        };
         /** ReportCreate */
         ReportCreate: {
             /** Transcript */
@@ -212,6 +393,16 @@ export interface components {
             is_demo: boolean;
             /** Media */
             media: components["schemas"]["MediaRead"][];
+            /** Rank */
+            rank?: number | null;
+            /** Total Ranked */
+            total_ranked?: number | null;
+            /** Priority Score */
+            priority_score?: number | null;
+            /** Supporter Count */
+            supporter_count?: number | null;
+            /** Score Breakdown */
+            score_breakdown?: components["schemas"]["ScoreFactor"][] | null;
         };
         /**
          * Role
@@ -222,11 +413,46 @@ export interface components {
          * @enum {string}
          */
         Role: "citizen" | "student" | "faculty" | "institute" | "panchayat" | "department" | "officer" | "industry" | "gov_admin" | "super_admin";
+        /** ScoreFactor */
+        ScoreFactor: {
+            /**
+             * Factor
+             * @enum {string}
+             */
+            factor: "support" | "gap" | "equity" | "severity" | "age";
+            /** Label */
+            label: string;
+            /** Score */
+            score: number;
+            /** Weight */
+            weight: number;
+            /** Is Demo */
+            is_demo: boolean;
+        };
         /**
          * Severity
          * @enum {string}
          */
         Severity: "low" | "medium" | "high" | "critical";
+        /** StatusAck */
+        StatusAck: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            status: components["schemas"]["ProblemStatus"];
+        };
+        /** SupportAck */
+        SupportAck: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Supporter Count */
+            supporter_count: number;
+        };
         /** UploadAuthorization */
         UploadAuthorization: {
             /**
@@ -297,6 +523,16 @@ export interface components {
             /** Is Demo */
             is_demo: boolean;
         };
+        /** ValidateReport */
+        ValidateReport: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "verify" | "reject";
+            /** Reason */
+            reason?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -342,7 +578,8 @@ export interface operations {
     mine_api_v1_reports_get: {
         parameters: {
             query?: {
-                mine?: boolean;
+                mine?: boolean | null;
+                status?: string | null;
                 limit?: number;
                 offset?: number;
             };
@@ -425,6 +662,193 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_api_v1_reports__report_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateReport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_clusters_api_v1_reports__report_id__cluster_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterSuggestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_cluster_api_v1_reports__report_id__cluster_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignCluster"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ranked_api_v1_clusters_ranked_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankedClusters"];
+                };
+            };
+        };
+    };
+    inputs_api_v1_clusters__cluster_id__inputs_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankingInputs"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    support_api_v1_clusters__cluster_id__support_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupportAck"];
                 };
             };
             /** @description Validation Error */

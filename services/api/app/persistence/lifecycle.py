@@ -33,6 +33,7 @@ from app.modules.files.models import MediaAsset
 from app.modules.problems.models import Cluster, Report, Verification, WorkOrder
 from app.persistence.audit import SqlAuditWriter
 from app.shared.enums import ProblemStatus as Status
+from app.shared.geo import cluster_radius_m, distance_m
 
 
 async def report_status(session: AsyncSession, report_id: UUID) -> StatusSnapshot:
@@ -220,6 +221,13 @@ class SqlTransitionStore:
                     "This cluster's repair is already awaiting or past citizen "
                     "verification. Start a new cluster for a recurring problem."
                 )
+            anchor = await session.get(Report, cluster.anchor_report_id)
+            if anchor is None:
+                raise NotFoundError("Cluster anchor not found.")
+            if distance_m(
+                report.latitude, report.longitude, anchor.latitude, anchor.longitude
+            ) > cluster_radius_m(report.category):
+                raise ValidationError("The report is outside this cluster's matching radius.")
         report.cluster_id = cluster.id
         snapshot = StatusSnapshot(Status(cluster.status), cluster.status_changed_at)
         await self._audit(
@@ -231,6 +239,7 @@ class SqlTransitionStore:
             Status.VERIFIED,
             snapshot,
             reason,
+            cluster_id=cluster.id,
         )
         return snapshot
 
@@ -297,6 +306,7 @@ class SqlTransitionStore:
         *,
         before_round: int | None = None,
         after_round: int | None = None,
+        cluster_id: UUID | None = None,
     ) -> None:
         await self.audit.log_event(
             session,
@@ -316,6 +326,7 @@ class SqlTransitionStore:
                     if snapshot.status_changed_at
                     else None,
                     **({"round": after_round} if after_round is not None else {}),
+                    **({"cluster_id": str(cluster_id)} if cluster_id is not None else {}),
                 },
                 reason=reason,
             ),

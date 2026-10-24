@@ -178,6 +178,32 @@ Ranking breakdown, on a report or ranked cluster as `score_breakdown`:
 
 `score` is 0–100 and `weight` 0–1. `is_demo` is true for a seeded or neutral-default input, which the UI labels "Demo value".
 
+Ranking is computed on read for confirmed clusters. The five factors are
+community support (30%), infrastructure gap (22%), equity (20%), severity
+(18%) and age (10%). Community support counts the **union of distinct member
+reporters and explicit citizen supporters**, never reports plus support rows.
+Its score is `100 * (1 - exp(-unique_citizens / 60))`. Severity is the highest
+Panchayat-validated member severity: low 30, medium 55, high 80, critical 100.
+Age uses elapsed days since the anchor report, capped at 90 days for a score
+of 100; future dates contribute zero. Missing gap/equity values use 50 and
+remain labelled demo/default. A complete official assessment clears
+`inputs_are_demo`; it does not relabel seeded report/support provenance.
+Ties use the older anchor's creation date, then the cluster UUID.
+
+Panchayat validation confirms the submitted category and severity as well as
+the report's validity. The current form has no field-correction editor; decline
+an incorrectly classified report with a reason and request a corrected report.
+Unvalidated reports never contribute severity or support to the ranked list.
+
+Cluster matching is against the **anchor report**, with the same category and
+district. Water, lighting and the other point categories use 100 metres. Roads
+and sanitation use 500 metres; sanitation includes drains in this prototype,
+which has no separate drain subtype. Distance proposes candidates only; the
+Panchayat must confirm that they describe the same problem. Assignment checks
+the radius again. Only `prioritised`, `funded` and `in_progress` clusters accept
+members or new explicit support; recurring faults after completion need a new
+cluster. These limits do not silently merge nearby assets.
+
 Work-order evidence, `GET /api/v1/work-orders/{id}/evidence`:
 
 ```json
@@ -211,6 +237,7 @@ access. Writes marked † carry an `Idempotency-Key` header.
 | `GET reports/{id}/cluster-suggestions` | — | items `{"id","title","category","distance_m","report_count","supporter_count"}` |
 | `POST reports/{id}/cluster` | `{"cluster_id":"…"}` or `{"new":true}` | `{"id","status"}` |
 | `GET clusters/ranked` | — | items `{"id","title","category","status","rank","priority_score","supporter_count","report_count","anchor_report_code","infrastructure_gap","equity_index","inputs_are_demo","score_breakdown"}` |
+| `POST clusters/{id}/support` | — | `{"id","supporter_count"}` — citizen only, own district. Repeated requests preserve one support row; reporters and explicit supporters are counted once in the same total used by ranking |
 | `PATCH clusters/{id}/inputs` | `{"infrastructure_gap":0-100,"equity_index":0-100}` | `{"id"}` |
 | `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's **district and department** |
 | `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` | `{"allocation_id","work_order_id"}`. Only the department responsible for the cluster's category in that district may fund it (403 otherwise). The officer must be in the work order's district **and** department (422 otherwise). Exact retry with the same key → the original response. Any other request for an already-funded cluster → **409** |
@@ -262,6 +289,17 @@ Scope is the API's: `mine=true` is the caller's own records and
 Changes made by one role reach another role's open page through its
 Refresh buttons or when that window regains focus; the API needs no push
 channel for the prototype.
+
+Report lists accept a single effective `status` or a pipe-separated set such
+as `status=reported|verified`, plus `limit` (default 100, maximum 200) and
+`offset` (default 0). `verified` excludes reports already in clusters because
+their effective status has advanced. Citizens default to their own reports;
+`mine=false` is refused. Panchayat and government admin reads stay in their
+district. Department/officer report and ranking reads are also restricted to
+the categories assigned to their department. Super admin reads span districts.
+Partner roles read ranked clusters within their district, not raw citizen
+reports. An out-of-scope report/cluster is 404, a wrong-role action is 403, and
+an already-transitioned record is 409.
 
 Status-count keys use the agreed status values. Submission `link` must be an
 HTTPS URL: the web client refuses any other scheme because it renders the link

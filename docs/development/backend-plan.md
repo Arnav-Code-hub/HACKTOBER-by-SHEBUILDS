@@ -31,6 +31,11 @@ or authentication. Only `app/shared/enums.py` (the agreed statuses) is real.
 Phases 0–5 are the demonstration journey. Every phase ships its own
 acceptance tests; Phase 8 reruns and integrates them.
 
+Implementation progress (24 October 2026): Phases 0–2 are implemented locally;
+the Phase 2 hosted/provider gate is pending account setup. Phase 3 implementation
+and its verification are recorded in [backend-phase3.md](backend-phase3.md).
+Continuing local development does not mark the hosted gate as passed.
+
 ## Cross-cutting rules (apply from Phase 0)
 
 **Idempotent writes.** Table `idempotency_keys(user_id, operation, key,
