@@ -115,9 +115,54 @@ void main() {
       expect(sent!.url.path, '/api/v1/work-orders/w1/verify');
       expect(jsonDecode(sent!.body), <String, Object?>{
         'verdict': false,
+        'expected_round': 2,
         'comment': 'Still dry in the evening.',
       });
       expect(sent!.headers['Idempotency-Key'], 'verify-w1-2');
+      api.close();
+    });
+
+    test('a stale round (409) asks the citizen to reload', () async {
+      final api = apiReturning(
+        (_) => http.Response('{"detail":"expected_round mismatch"}', 409),
+      );
+      await expectLater(
+        HttpVerificationRepository(api).submit(
+          const VerificationSubmission(
+            demandId: 'r1',
+            kind: VerificationKind.citizen,
+            isFixed: true,
+            workOrderId: 'w1',
+            round: 1,
+          ),
+          'local-user',
+        ),
+        throwsA(
+          isA<ConflictFailure>().having(
+            (f) => f.message,
+            'message',
+            'This repair was updated — reload to see the latest evidence',
+          ),
+        ),
+      );
+      api.close();
+    });
+
+    test('other refusals keep their own meaning', () async {
+      final api = apiReturning((_) => http.Response('{}', 403));
+      await expectLater(
+        HttpVerificationRepository(api).submit(
+          const VerificationSubmission(
+            demandId: 'r1',
+            kind: VerificationKind.citizen,
+            isFixed: true,
+            workOrderId: 'w1',
+            round: 1,
+          ),
+          'local-user',
+        ),
+        throwsA(isA<PermissionFailure>()),
+      );
       api.close();
     });
 

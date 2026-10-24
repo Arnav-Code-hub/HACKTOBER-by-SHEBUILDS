@@ -44,3 +44,10 @@ class ServerFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }
+
+/// The server refused the request because the record changed since the
+/// caller last read it (HTTP 409): a conflicting earlier action or a stale
+/// precondition. Callers can explain it or reload instead of retrying blindly.
+class ConflictFailure extends Failure {
+  const ConflictFailure(super.message);
+}

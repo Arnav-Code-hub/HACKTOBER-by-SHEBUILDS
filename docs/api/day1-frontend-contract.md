@@ -9,6 +9,16 @@ Status: proposed integration contract implemented by Developer B's clients. Deve
 - The API verifies the token, resolves the Firebase UID to a local user, and enforces role, district, department, assignment and ownership. Client navigation is not authorization.
 - JSON uses snake_case. Datetimes are ISO-8601 UTC strings. IDs are opaque strings.
 - Non-2xx responses are errors; the client must not treat a login, upload, or report as successful until the relevant operation succeeds. `detail` may be a safe message or a FastAPI validation-error list.
+- **Idempotent writes** (every write marked † below, plus `POST /reports`):
+  the key is unique per `(user, operation, key)` by database constraint. The
+  business write, its audit event and the stored response commit in **one
+  transaction**, so two concurrent requests with one key cannot both run the
+  action: the second either waits and receives the stored response or gets
+  409. Same key and identical payload → the original response, same status.
+  Same key, different payload → 409.
+- **State changes are conditional**: each transition updates only from its
+  expected status (or under a row lock) and returns 409 if the record moved
+  on. A key identifies a request; it never replaces such a precondition.
 - An empty list is returned as `{"items": []}`. A missing feature returns an explicit error, never a fabricated success.
 - Before the first profile request, both clients call unauthenticated `GET /health` (at the origin, outside `/api/v1`) and wait up to about 75 seconds for a sleeping free-tier host to wake. `/health` must stay public and must be covered by the CORS configuration.
 - The Flutter app accepts only `citizen` profiles; staff and partner roles use the web workspace.
@@ -202,17 +212,28 @@ access. Writes marked † carry an `Idempotency-Key` header.
 | `POST reports/{id}/cluster` | `{"cluster_id":"…"}` or `{"new":true}` | `{"id","status"}` |
 | `GET clusters/ranked` | — | items `{"id","title","category","status","rank","priority_score","supporter_count","report_count","anchor_report_code","infrastructure_gap","equity_index","inputs_are_demo","score_breakdown"}` |
 | `PATCH clusters/{id}/inputs` | `{"infrastructure_gap":0-100,"equity_index":0-100}` | `{"id"}` |
-| `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's district |
-| `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` | `{"allocation_id","work_order_id"}`; 409 if the cluster is already funded |
-| `GET statements?status=` | — | items `{"id","title","body","status":"draft\|published","cluster_id","published_at"}` |
-| `POST statements` † | `{"title","body","cluster_id"?}` | statement |
-| `POST statements/{id}/publish` | — | statement |
+| `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's **district and department** |
+| `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` | `{"allocation_id","work_order_id"}`. Only the department responsible for the cluster's category in that district may fund it (403 otherwise). The officer must be in the work order's district **and** department (422 otherwise). Exact retry with the same key → the original response. Any other request for an already-funded cluster → **409** |
+| `GET statements?status=` | — | items `{"id","title","body","status":"draft\|published","cluster_id","published_at"}`. **Read access:** student, faculty, institute, industry, gov admin and super admin see **published** statements only; a department sees published statements plus **its own drafts**. Drafts are never visible outside the owning department |
+| `POST statements` † | `{"title","body","cluster_id"?}` | statement — department only, owned by the caller's department |
+| `POST statements/{id}/publish` | — | statement — owning department only; publishing twice returns the published statement |
 | `GET work-orders?mine=true` | — | items `{"id","cluster_id","report_code","title","status","round","location_label","instructions","notes","allocated_paise","assigned_at"}` |
 | `PATCH work-orders/{id}` | `{"notes":"…"}` | `{"id","status"}`; the first update moves `funded → in_progress` |
-| `POST work-orders/{id}/complete` † | `{"media_ids":[…]}` (the caller's own `completion` media) | `{"id","status":"awaiting_verification"}` |
-| `GET work-orders/{id}/evidence` | — | evidence (above), for **every** assigned order, open ones included: `after` and `card_url` are `null` until completion. On a correction round `after` is the returned attempt |
+| `POST work-orders/{id}/complete` † | `{"media_ids":[…]}` (the caller's own `completion` media) | `{"id","status":"awaiting_verification"}`. Only from `in_progress`. The attached media are stored with the work order's **current round**; earlier rounds' photos are kept, never overwritten |
+| `GET work-orders/{id}/evidence` | — | evidence (above), for **every** assigned order, open ones included. `after` is chosen deliberately by round: while `awaiting_verification` or `citizen_verified`, the **current** round's completion; while `in_progress` on round > 1, the **previous** round's (returned) completion, which the officer page labels "Previous completion · returned by the citizen"; otherwise `null`. `after_round` (int or null) states which round `after` belongs to |
 
 `round` starts at 1 and increases each time the reporter answers "not fixed".
+
+A work order has no status of its own: every `status` returned for a work
+order, its cluster and the cluster's reports is the **cluster's** status, with
+the cluster's `status_changed_at`. Completing a work order therefore moves
+all of them to `awaiting_verification` together.
+
+The evidence endpoint, the verification view and the evidence card use one
+selection rule, so they always agree. While a returned attempt is being
+corrected (`in_progress`, round > 1), `after` is that returned attempt's photo
+with its `after_round`, and the card reads "Round N · returned for
+correction".
 Errors use FastAPI's `{"detail": …}`; a short string `detail` is shown to the
 official verbatim, so keep it user-readable.
 
@@ -233,7 +254,7 @@ Scope is the API's: `mine=true` is the caller's own records and
 | `GET sponsorships?mine=true` | — | items `{"id","statement_id","statement_title","amount_paise","status":"pledged","pledged_at"}` |
 | `POST statements/{id}/sponsorships` † | `{"amount_paise"}` | sponsorship |
 | `GET admin/summary` | — | `{"district_name","reports_by_status":{status:count},"cluster_count","work_orders_by_status":{status:count},"allocated_paise","pledged_paise"}` |
-| `GET admin/audit?limit=50` | — | items `{"id","at","actor_name","actor_role","action","entity_type","entity_id","reason"}`, newest first |
+| `GET admin/audit?limit=50` | — | items `{"id","at","actor_name","actor_role","action","entity_type","entity_id","reason"}`, newest first. Each event stores its own `district_id` (the district of the affected record, nullable for platform-wide events); a gov admin sees events for their district, a super admin sees all. Scope never depends on the actor's current organisation |
 | `GET admin/users` | — (super admin) | items `{"id","display_name","email","role","district_id","department_id","institute_id"}` |
 | `GET organizations` | — (super admin) | items `{"id","type":"district\|department\|institute\|industry","name"}` |
 | `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction. **403 when `{id}` is the caller**: nobody changes their own role or scope (the web client also refuses) |
@@ -290,13 +311,21 @@ the API enforces it on the write below.
 verify-{work_order_id}-{round}`:
 
 ```json
-{"verdict": false, "comment": "Still dry in the evening."}
+{"verdict": false, "expected_round": 2, "comment": "Still dry in the evening."}
 ```
 
+`expected_round` is the round whose evidence the citizen reviewed (the
+`round` from the verification view). In one transaction the API checks, in
+order: the caller is the original reporter (else 403); the work order is
+`awaiting_verification` **and** its current round equals `expected_round`
+(else **409** — the evidence changed, or a verdict was already recorded);
+then records the verdict and its audit event. The key identifies the request
+for retries; it is not the round check.
+
 `comment` is optional (≤ 500 characters). `true` → `citizen_verified`;
-`false` → `in_progress` with `round` + 1 and **no new allocation**. A second
-verdict for the same round returns 409; anyone but the original reporter
-gets 403.
+`false` → `in_progress` with `round` + 1 and **no new allocation**. On 409 the
+app tells the citizen "This repair was updated — reload to see the latest
+evidence" and offers Reload; nothing is recorded.
 
 ## Optional suggestion
 

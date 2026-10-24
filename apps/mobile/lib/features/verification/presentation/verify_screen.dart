@@ -306,6 +306,22 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
         ),
       );
       Navigator.of(context).maybePop();
+    } on ConflictFailure catch (failure) {
+      // The work order moved on (a new round, or a verdict already saved)
+      // after this screen loaded. Nothing was recorded; offer the latest.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure.message),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: 'Reload',
+            onPressed: () => ref.invalidate(
+              verificationRequestProvider(widget.demandId),
+            ),
+          ),
+        ),
+      );
     } on Failure catch (failure) {
       if (!mounted) return;
       ScaffoldMessenger.of(

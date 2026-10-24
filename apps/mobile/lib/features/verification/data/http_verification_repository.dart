@@ -15,6 +15,11 @@ import '../domain/verification_repository.dart';
 ///
 /// Officer field work uses the web workspace, so field assignments are not
 /// available in this app.
+/// Shown when the work order changed after the citizen opened the evidence
+/// (another round, or a verdict already recorded).
+const staleVerificationMessage =
+    'This repair was updated — reload to see the latest evidence';
+
 class HttpVerificationRepository implements VerificationRepository {
   HttpVerificationRepository(this._api);
   final ApiClient _api;
@@ -46,16 +51,23 @@ class HttpVerificationRepository implements VerificationRepository {
       );
     }
     final note = submission.note.trim();
-    await _api.post(
-      'work-orders/${Uri.encodeComponent(workOrderId)}/verify',
-      <String, Object?>{
-        'verdict': submission.isFixed,
-        if (note.isNotEmpty) 'comment': note,
-      },
-      // One verdict per round: a retried tap is the same request, and a
-      // different verdict for the same round is refused by the API (409).
-      idempotencyKey: 'verify-$workOrderId-$round',
-    );
+    try {
+      await _api.post(
+        'work-orders/${Uri.encodeComponent(workOrderId)}/verify',
+        <String, Object?>{
+          'verdict': submission.isFixed,
+          // The attempt this citizen actually reviewed. The API refuses the
+          // verdict (409) if the work order has moved to another round.
+          'expected_round': round,
+          if (note.isNotEmpty) 'comment': note,
+        },
+        // Identifies this request for safe retries; it is not the round
+        // check — `expected_round` is.
+        idempotencyKey: 'verify-$workOrderId-$round',
+      );
+    } on ConflictFailure {
+      throw const ConflictFailure(staleVerificationMessage);
+    }
   }
 
   @override

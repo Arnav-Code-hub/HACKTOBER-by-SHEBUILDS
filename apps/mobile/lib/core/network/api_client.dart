@@ -132,7 +132,7 @@ class ApiClient {
       }
       if (response.statusCode == 404) throw const NotFoundFailure();
       if (response.statusCode == 409) {
-        throw const ValidationFailure(
+        throw const ConflictFailure(
           'This request conflicts with an existing action. Check Track before trying again.',
         );
       }
