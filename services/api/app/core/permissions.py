@@ -5,7 +5,9 @@ documents it in prose; this file is what actually runs. The web middleware mirro
 it for UX only — authorisation is enforced here, server-side, always.
 """
 
+from collections.abc import Callable
 from enum import StrEnum
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 
@@ -24,9 +26,13 @@ class Permission(StrEnum):
     PROBLEM_READ = "problem:read"
     PROBLEM_MODERATE = "problem:moderate"
     PROBLEM_VERIFY = "problem:verify"
+    CLUSTER_CONFIRM = "cluster:confirm"
+    WORKORDER_ASSIGN = "workorder:assign"
+    WORKORDER_UPDATE = "workorder:update"
 
     STATEMENT_CREATE = "statement:create"
     STATEMENT_PUBLISH = "statement:publish"
+    STATEMENT_READ_PUBLISHED = "statement:read_published"
 
     PROJECT_CREATE = "project:create"
     PROJECT_REVIEW = "project:review"
@@ -58,6 +64,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.STUDENT: frozenset(
         {
+            Permission.STATEMENT_READ_PUBLISHED,
             Permission.PROBLEM_READ,
             Permission.PROJECT_CREATE,
             Permission.TEAM_MANAGE,
@@ -65,6 +72,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.FACULTY: frozenset(
         {
+            Permission.STATEMENT_READ_PUBLISHED,
             Permission.PROBLEM_READ,
             Permission.PROJECT_REVIEW,
             Permission.BUILDFOLIO_ENDORSE,
@@ -73,6 +81,8 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.INSTITUTE: frozenset(
         {
+            Permission.STATEMENT_READ_PUBLISHED,
+            Permission.PROJECT_APPROVE,
             Permission.PROBLEM_READ,
             Permission.PROJECT_REVIEW,
             Permission.ANALYTICS_VIEW,
@@ -81,14 +91,16 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.PANCHAYAT: frozenset(
         {
+            Permission.CLUSTER_CONFIRM,
             Permission.PROBLEM_READ,
             Permission.PROBLEM_MODERATE,
-            Permission.PROBLEM_VERIFY,
             Permission.ANALYTICS_VIEW,
         }
     ),
     Role.DEPARTMENT: frozenset(
         {
+            Permission.WORKORDER_ASSIGN,
+            Permission.STATEMENT_READ_PUBLISHED,
             Permission.PROBLEM_READ,
             Permission.STATEMENT_CREATE,
             Permission.STATEMENT_PUBLISH,
@@ -99,13 +111,14 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.OFFICER: frozenset(
         {
+            Permission.WORKORDER_UPDATE,
             Permission.PROBLEM_READ,
             Permission.PROBLEM_MODERATE,
-            Permission.PROBLEM_VERIFY,
         }
     ),
     Role.INDUSTRY: frozenset(
         {
+            Permission.STATEMENT_READ_PUBLISHED,
             Permission.PROBLEM_READ,
             Permission.FUNDING_SPONSOR,
             Permission.ANALYTICS_VIEW,
@@ -113,6 +126,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     ),
     Role.GOV_ADMIN: frozenset(
         {
+            Permission.STATEMENT_READ_PUBLISHED,
             Permission.PROBLEM_READ,
             Permission.PROBLEM_MODERATE,
             Permission.STATEMENT_PUBLISH,
@@ -131,7 +145,7 @@ def has_permission(role: Role, permission: Permission) -> bool:
     return permission in ROLE_PERMISSIONS.get(role, frozenset())
 
 
-def require(*permissions: Permission):  # type: ignore[no-untyped-def]
+def require(*permissions: Permission) -> Callable[..., Any]:
     """FastAPI dependency requiring ALL the given permissions.
 
     @router.post("/", dependencies=[Depends(require(Permission.STATEMENT_CREATE))])

@@ -1,9 +1,26 @@
-"""SQLAlchemy models for problem statements. PRIVATE to this module.
+"""Published student challenges are independent of public work orders."""
 
-Colocated with the code that uses them rather than in a central models/
-package, which becomes a merge-conflict hotspot with seven developers.
-"""
+from datetime import datetime
+from uuid import UUID
 
-from app.core.database import Base  # noqa: F401
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
-# TODO(problem_statements): tables. Table names are snake_case and plural.
+from app.core.database import Base
+from app.shared.models import DemoMixin, TimestampMixin, UUIDMixin
+
+
+class ProblemStatement(UUIDMixin, TimestampMixin, DemoMixin, Base):
+    __tablename__ = "problem_statements"
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','published')", name="status"),
+        CheckConstraint("status <> 'published' OR published_at IS NOT NULL", name="publish_date"),
+    )
+    department_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id"), index=True)
+    district_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id"), index=True)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    cluster_id: Mapped[UUID | None] = mapped_column(ForeignKey("clusters.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="draft")
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

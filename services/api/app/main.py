@@ -16,21 +16,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, get_logger
-from app.modules.academics.router import router as academics_router
-from app.modules.analytics.router import router as analytics_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
-from app.modules.buildfolio.router import router as buildfolio_router
 from app.modules.departments.router import router as departments_router
-from app.modules.feedback.router import router as feedback_router
 from app.modules.files.router import router as files_router
 from app.modules.funding.router import router as funding_router
-from app.modules.geography.router import router as geography_router
-from app.modules.impact.router import router as impact_router
-from app.modules.industry.router import router as industry_router
-from app.modules.leaderboard.router import router as leaderboard_router
-from app.modules.maps.router import router as maps_router
-from app.modules.notifications.router import router as notifications_router
 from app.modules.problem_statements.router import router as problem_statements_router
 from app.modules.problems.router import router as problems_router
 from app.modules.projects.router import router as projects_router
@@ -46,23 +36,13 @@ MODULE_ROUTERS = (
     auth_router,
     users_router,
     rbac_router,
-    geography_router,
     departments_router,
     problems_router,
     problem_statements_router,
     projects_router,
     teams_router,
-    academics_router,
-    industry_router,
     funding_router,
-    buildfolio_router,
-    feedback_router,
-    impact_router,
-    leaderboard_router,
-    analytics_router,
-    notifications_router,
     files_router,
-    maps_router,
     audit_router,
 )
 
@@ -97,9 +77,9 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "Accept"],
         )
 
     register_error_handlers(app)

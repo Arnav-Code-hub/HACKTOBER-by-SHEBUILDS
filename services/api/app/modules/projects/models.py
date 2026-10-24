@@ -1,9 +1,38 @@
-"""SQLAlchemy models for projects. PRIVATE to this module.
+"""Student submissions and institute-scoped faculty reviews."""
 
-Colocated with the code that uses them rather than in a central models/
-package, which becomes a merge-conflict hotspot with seven developers.
-"""
+from datetime import datetime
+from uuid import UUID
 
-from app.core.database import Base  # noqa: F401
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
 
-# TODO(projects): tables. Table names are snake_case and plural.
+from app.core.database import Base
+from app.shared.models import DemoMixin, TimestampMixin, UUIDMixin
+
+
+class Submission(UUIDMixin, TimestampMixin, DemoMixin, Base):
+    __tablename__ = "submissions"
+    __table_args__ = (
+        CheckConstraint("link IS NULL OR link ~ '^https://[^/[:space:]]+'", name="https_link"),
+    )
+    team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id"), index=True)
+    statement_id: Mapped[UUID] = mapped_column(ForeignKey("problem_statements.id"), index=True)
+    submitted_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(200))
+    summary: Mapped[str] = mapped_column(Text)
+    link: Mapped[str | None] = mapped_column(String(2048))
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Review(UUIDMixin, TimestampMixin, DemoMixin, Base):
+    __tablename__ = "reviews"
+    __table_args__ = (
+        UniqueConstraint("submission_id", "reviewer_id"),
+        CheckConstraint("score BETWEEN 1 AND 5", name="score_range"),
+    )
+    submission_id: Mapped[UUID] = mapped_column(ForeignKey("submissions.id"))
+    reviewer_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    score: Mapped[int]
+    comment: Mapped[str] = mapped_column(Text)

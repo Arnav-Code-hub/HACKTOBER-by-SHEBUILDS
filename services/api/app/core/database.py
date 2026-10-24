@@ -1,7 +1,6 @@
 """Async SQLAlchemy engine, session factory and the declarative base.
 
-PostGIS and pgvector are enabled by the first migration, not here — the schema
-is owned entirely by Alembic so a fresh clone and production converge.
+The prototype uses plain PostgreSQL. Alembic owns all schema changes.
 """
 
 from collections.abc import AsyncGenerator
@@ -38,6 +37,7 @@ engine = create_async_engine(
     echo=_settings.debug,
     pool_size=_settings.database_pool_size,
     pool_pre_ping=True,
+    isolation_level="READ COMMITTED",
 )
 
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

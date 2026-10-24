@@ -1,12 +1,18 @@
 """Shared Redis connection — cache, rate limits and the ARQ job queue."""
 
-from redis.asyncio import ConnectionPool, Redis
+from typing import cast
+
+from redis.asyncio import Redis
 
 from app.core.config import get_settings
 
-_settings = get_settings()
-_pool = ConnectionPool.from_url(str(_settings.redis_url), decode_responses=True)
-
 
 def get_redis() -> Redis:
-    return Redis(connection_pool=_pool)
+    """Explicit opt-in for legacy callers; importing this module does no work.
+
+    The caller owns and closes this client. Prototype API code does not use it.
+    """
+    url = get_settings().redis_url
+    if url is None:
+        raise RuntimeError("Redis is disabled in the prototype")
+    return cast(Redis, Redis.from_url(str(url), decode_responses=True))

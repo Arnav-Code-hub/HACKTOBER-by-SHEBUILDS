@@ -6,7 +6,7 @@
 The DATA lives in ``services/api/seeds/`` — deliberately outside the app package,
 because it is content rather than code and is reviewed by different people.
 
-reference/  real, committed, deterministic UUIDs. Idempotent, safe in production.
+reference/  reserved for future real datasets; --reference currently writes nothing.
 demo/       the SIH demonstration dataset. Every synthetic record carries a
             provenance label, matching the commitment in docs/SOURCES.md.
 """

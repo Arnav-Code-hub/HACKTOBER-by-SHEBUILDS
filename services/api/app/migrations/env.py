@@ -17,35 +17,24 @@ from app.core.database import Base
 
 # Importing every module's models registers them on Base.metadata so
 # --autogenerate sees the full schema. Add new modules here.
-from app.modules import (  # noqa: F401
-    academics,
-    analytics,
-    audit,
-    auth,
-    buildfolio,
-    departments,
-    feedback,
-    files,
-    funding,
-    geography,
-    impact,
-    industry,
-    leaderboard,
-    maps,
-    notifications,
-    problem_statements,
-    problems,
-    projects,
-    rbac,
-    teams,
-    users,
-)
+from app.modules.audit import models as audit_models  # noqa: F401
+from app.modules.auth import models as auth_models  # noqa: F401
+from app.modules.departments import models as departments_models  # noqa: F401
+from app.modules.files import models as files_models  # noqa: F401
+from app.modules.funding import models as funding_models  # noqa: F401
+from app.modules.problem_statements import models as statement_models  # noqa: F401
+from app.modules.problems import models as problems_models  # noqa: F401
+from app.modules.projects import models as projects_models  # noqa: F401
+from app.modules.rbac import models as rbac_models  # noqa: F401
+from app.modules.teams import models as teams_models  # noqa: F401
+from app.modules.users import models as users_models  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", str(get_settings().database_url))
+# ConfigParser interpolation must not reinterpret percent-encoded passwords.
+config.set_main_option("sqlalchemy.url", str(get_settings().database_url).replace("%", "%%"))
 target_metadata = Base.metadata
 
 

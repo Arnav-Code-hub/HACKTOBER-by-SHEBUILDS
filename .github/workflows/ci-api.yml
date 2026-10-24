@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-service
-        with: { service: services/api }
+        with: { service: services/api, uv-version: "0.13.5" }
       - name: Ruff
         working-directory: services/api
         run: uv run ruff check . && uv run ruff format --check .
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgis/postgis:16-3.4
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: janmaang
           POSTGRES_PASSWORD: janmaang
@@ -48,18 +48,15 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U janmaang"
           --health-interval 5s --health-timeout 5s --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-        options: --health-cmd "redis-cli ping" --health-interval 5s --health-retries 10
     env:
       DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@localhost:5432/janmaang_test
-      REDIS_URL: redis://localhost:6379/0
+      TEST_DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@localhost:5432/janmaang_test
+      ENVIRONMENT: staging
       AUTH_SECRET: ci-only-secret-value-not-real
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-service
-        with: { service: services/api }
+        with: { service: services/api, uv-version: "0.13.5" }
       - name: Migrations apply cleanly from scratch
         working-directory: services/api
         run: uv run alembic upgrade head

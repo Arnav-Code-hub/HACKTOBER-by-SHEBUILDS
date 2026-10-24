@@ -76,6 +76,7 @@ apps/mobile/android/app/google-services.json
 apps/mobile/ios/Runner/GoogleService-Info.plist
 apps/mobile/macos/Runner/GoogleService-Info.plist
 apps/mobile/config/*.local.json
+services/api/seeds/demo/*.local.json
 .firebaserc
 apps/mobile/firebase/.firebaserc
 

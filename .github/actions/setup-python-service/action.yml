@@ -4,12 +4,15 @@ inputs:
   service:
     description: Path to the service (services/api or services/ai)
     required: true
+  uv-version:
+    description: uv release matching the service's lockfile format
+    default: "0.5.4"
 runs:
   using: composite
   steps:
     - uses: astral-sh/setup-uv@v3
       with:
-        version: "0.5.4"
+        version: "${{ inputs.uv-version }}"
         enable-cache: true
         cache-dependency-glob: "${{ inputs.service }}/uv.lock"
     - shell: bash

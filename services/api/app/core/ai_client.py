@@ -13,17 +13,20 @@ from typing import Any
 
 import httpx
 
-from app.core.config import get_settings
 from app.core.errors import UpstreamError
 
 
 class AIClient:
-    def __init__(self) -> None:
-        settings = get_settings()
+    def __init__(self, *, base_url: str, internal_key: str, timeout_seconds: int = 30) -> None:
+        """Legacy separate-service adapter; not used by the prototype.
+
+        Explicit arguments keep legacy callers opt-in without making the
+        single-service API require obsolete AI_SERVICE_* settings.
+        """
         self._client = httpx.AsyncClient(
-            base_url=settings.ai_service_url,
-            timeout=settings.ai_request_timeout_seconds,
-            headers={"X-Internal-Key": settings.ai_service_key},
+            base_url=base_url,
+            timeout=timeout_seconds,
+            headers={"X-Internal-Key": internal_key},
         )
 
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:

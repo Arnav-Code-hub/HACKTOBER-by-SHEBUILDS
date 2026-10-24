@@ -12,7 +12,7 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH"
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq5 curl && rm -rf /var/lib/apt/lists/*
-COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /bin/
 WORKDIR /app
 
 # Dependencies resolve in their own layer, so an application-code change does
@@ -20,12 +20,11 @@ WORKDIR /app
 FROM base AS deps
 COPY pyproject.toml uv.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --all-groups 2>/dev/null || \
-    uv sync --no-install-project --all-groups
+    uv sync --frozen --no-install-project --all-groups
 
 FROM deps AS development
 COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --all-groups
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --all-groups
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
@@ -34,8 +33,7 @@ COPY --from=deps /app/.venv /app/.venv
 # Drop dev dependencies from the production image.
 COPY pyproject.toml uv.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev 2>/dev/null || \
-    uv sync --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev
 COPY ./app ./app
 COPY ./seeds ./seeds
 COPY alembic.ini ./
