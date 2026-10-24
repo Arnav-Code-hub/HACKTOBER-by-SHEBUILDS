@@ -74,7 +74,8 @@ export function StudentWorkspace() {
         rows={statements.data?.items}
         isLoading={statements.isLoading}
         error={statements.error}
-        onRetry={() => void statements.refetch()}
+        onRefresh={() => void statements.refetch()}
+        isRefreshing={statements.isFetching}
         emptyMessage="No problem statements are published yet."
         rowKey={(s) => s.id}
       />
@@ -106,7 +107,8 @@ export function StudentWorkspace() {
           rows={teams.data?.items}
           isLoading={teams.isLoading}
           error={teams.error}
-          onRetry={() => void teams.refetch()}
+          onRefresh={() => void teams.refetch()}
+          isRefreshing={teams.isFetching}
           emptyMessage="You are not in a team yet."
           rowKey={(t) => t.id}
           onSelect={(t) => setTeamId(t.id)}
@@ -239,7 +241,8 @@ export function StudentWorkspace() {
           rows={submissions.data?.items}
           isLoading={submissions.isLoading}
           error={submissions.error}
-          onRetry={() => void submissions.refetch()}
+          onRefresh={() => void submissions.refetch()}
+          isRefreshing={submissions.isFetching}
           emptyMessage="No solutions submitted yet."
           rowKey={(s) => s.id}
         />

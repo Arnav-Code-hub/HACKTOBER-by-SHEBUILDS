@@ -13,6 +13,10 @@ export type Column<T> = {
  * A scoped list from the API with explicit loading, error and empty states.
  * It renders only what the API returned — an empty list says so rather than
  * showing sample rows. Shaped to take a React Query result directly.
+ *
+ * Writes made in another browser (another role) cannot invalidate this
+ * page's cache, so every loaded list — empty or not — offers Refresh. A
+ * failed background refresh keeps the rows already shown.
  */
 export function RecordList<T>({
   title,
@@ -21,7 +25,8 @@ export function RecordList<T>({
   rows,
   isLoading,
   error,
-  onRetry,
+  onRefresh,
+  isRefreshing = false,
   emptyMessage,
   rowKey,
   onSelect,
@@ -33,31 +38,55 @@ export function RecordList<T>({
   rows: T[] | undefined;
   isLoading: boolean;
   error?: unknown;
-  onRetry?: () => void;
+  /** Refetches the list; shown as Refresh, or Retry after a failed load. */
+  onRefresh?: () => void;
+  /** True while a refetch is in flight (React Query's `isFetching`). */
+  isRefreshing?: boolean;
   emptyMessage: string;
   rowKey: (row: T) => string;
   onSelect?: (row: T) => void;
   selectedKey?: string | null;
 }) {
+  const hasRows = Boolean(rows?.length);
+  const message =
+    error instanceof ApiError ? error.message : "The list could not be loaded.";
   return (
     <section className="jm-panel">
-      <h2>{title}</h2>
+      <div className="jm-list-heading">
+        <h2>{title}</h2>
+        {onRefresh && !isLoading && !(error && !hasRows) && (
+          <button
+            type="button"
+            className="jm-button jm-button-secondary jm-button-small"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        )}
+      </div>
       {description && <p className="jm-muted">{description}</p>}
+      {error && hasRows ? (
+        <p className="jm-form-error" role="alert">
+          Could not refresh: {message} Showing the last loaded list.
+        </p>
+      ) : null}
       {isLoading ? (
         <p className="jm-muted" role="status">
           Loading…
         </p>
-      ) : error ? (
+      ) : error && !hasRows ? (
         <div className="jm-empty" role="alert">
           <span className="jm-badge jm-tone-critical">Could not load</span>
-          <p>
-            {error instanceof ApiError
-              ? error.message
-              : "The list could not be loaded."}
-          </p>
-          {onRetry && (
-            <button className="jm-button jm-button-secondary" onClick={onRetry}>
-              Retry
+          <p>{message}</p>
+          {onRefresh && (
+            <button
+              type="button"
+              className="jm-button jm-button-secondary"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? "Retrying…" : "Retry"}
             </button>
           )}
         </div>

@@ -51,7 +51,11 @@ function newQueryClient(): QueryClient {
     defaultOptions: {
       queries: {
         retry: shouldRetry,
-        refetchOnWindowFocus: false,
+        // Other roles change shared records from other browsers, which this
+        // cache cannot hear about. Returning to the window always refetches,
+        // even within staleTime; forms keep their state because loaded data
+        // stays mounted during a background refetch.
+        refetchOnWindowFocus: "always",
         staleTime: 15_000,
       },
       // Writes are never retried automatically: the official decides.

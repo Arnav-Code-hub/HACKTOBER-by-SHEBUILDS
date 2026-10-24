@@ -75,7 +75,8 @@ export function PanchayatWorkspace() {
             rows={toValidate.data?.items}
             isLoading={toValidate.isLoading}
             error={toValidate.error}
-            onRetry={() => void toValidate.refetch()}
+            onRefresh={() => void toValidate.refetch()}
+            isRefreshing={toValidate.isFetching}
             emptyMessage="No reports are waiting for validation."
             rowKey={(r) => r.id}
             onSelect={(r) => setSelectedId(r.id)}
@@ -87,7 +88,8 @@ export function PanchayatWorkspace() {
             rows={toCluster.data?.items}
             isLoading={toCluster.isLoading}
             error={toCluster.error}
-            onRetry={() => void toCluster.refetch()}
+            onRefresh={() => void toCluster.refetch()}
+            isRefreshing={toCluster.isFetching}
             emptyMessage="No validated reports are waiting for a cluster."
             rowKey={(r) => r.id}
             onSelect={(r) => setSelectedId(r.id)}
@@ -107,7 +109,7 @@ export function PanchayatWorkspace() {
             <section className="jm-panel">
               <p role="status">Loading report…</p>
             </section>
-          ) : report.error || !selected ? (
+          ) : !selected ? (
             <section className="jm-panel" role="alert">
               <h2>Report unavailable</h2>
               <p className="jm-muted">

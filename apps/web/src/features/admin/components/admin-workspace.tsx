@@ -54,11 +54,23 @@ export function AdminWorkspace() {
         </p>
       </div>
 
+      {summary.data && (
+        <div className="jm-button-row jm-refresh-row">
+          <button
+            type="button"
+            className="jm-button jm-button-secondary jm-button-small"
+            onClick={() => void summary.refetch()}
+            disabled={summary.isFetching}
+          >
+            {summary.isFetching ? "Refreshing…" : "Refresh summary"}
+          </button>
+        </div>
+      )}
       {summary.isLoading ? (
         <section className="jm-panel">
           <p role="status">Loading the district summary…</p>
         </section>
-      ) : summary.error || !summary.data ? (
+      ) : !summary.data ? (
         <section className="jm-panel" role="alert">
           <h2>Summary unavailable</h2>
           <button
@@ -69,7 +81,14 @@ export function AdminWorkspace() {
           </button>
         </section>
       ) : (
-        <SummaryPanels summary={summary.data} />
+        <>
+          {summary.error && (
+            <p className="jm-form-error" role="alert">
+              Could not refresh the summary. Showing the last loaded figures.
+            </p>
+          )}
+          <SummaryPanels summary={summary.data} />
+        </>
       )}
 
       <div className="jm-section">
@@ -108,7 +127,8 @@ export function AdminWorkspace() {
           rows={audit.data?.items}
           isLoading={audit.isLoading}
           error={audit.error}
-          onRetry={() => void audit.refetch()}
+          onRefresh={() => void audit.refetch()}
+          isRefreshing={audit.isFetching}
           emptyMessage="No actions have been recorded yet."
           rowKey={(e) => e.id}
         />
@@ -195,9 +215,16 @@ function StatusCounts({
   );
 }
 
+const SELF_CHANGE =
+  "You cannot change your own role or scope. Another super administrator must make this change.";
+
 function UserAdministration() {
   const api = useApi();
   const invalidate = useInvalidate();
+  const { state } = useSession();
+  // Changing your own access would leave this session's profile, navigation
+  // and cache scope stale, so the prototype refuses it (the API should too).
+  const selfId = state.status === "authenticated" ? state.profile.id : null;
   const [userId, setUserId] = useState<string | null>(null);
   const users = useAdminUsers(true);
   const organizations = useOrganizations(true);
@@ -221,6 +248,7 @@ function UserAdministration() {
             cell: (u: AdminUser) => (
               <>
                 <strong>{u.display_name || u.email || u.id}</strong>
+                {u.id === selfId && <span className="jm-small"> (you)</span>}
                 {u.email && u.display_name && (
                   <>
                     <br />
@@ -243,7 +271,8 @@ function UserAdministration() {
         rows={users.data?.items}
         isLoading={users.isLoading}
         error={users.error}
-        onRetry={() => void users.refetch()}
+        onRefresh={() => void users.refetch()}
+        isRefreshing={users.isFetching}
         emptyMessage="No users found."
         rowKey={(u) => u.id}
         onSelect={(u) => setUserId(u.id)}
@@ -251,7 +280,12 @@ function UserAdministration() {
       />
 
       <div className="jm-stack">
-        {user ? (
+        {user && user.id === selfId ? (
+          <section className="jm-panel" role="status">
+            <h2>This is your account</h2>
+            <p className="jm-muted">{SELF_CHANGE}</p>
+          </section>
+        ) : user ? (
           <ActionForm
             key={`role-${user.id}-${user.role}-${user.district_id}-${user.department_id}-${user.institute_id}`}
             title={`Change role or scope · ${user.display_name || user.email || user.id}`}
@@ -301,6 +335,9 @@ function UserAdministration() {
               `Change ${user.display_name || user.email || "this user"} to ${ROLE_LABEL[values.role as AdminUser["role"]]}? Their access changes on their next request, and the change is audited with your reason.`
             }
             onSubmit={async (values) => {
+              // Guarded here as well as hidden above, in case the session
+              // and the selected row change between render and submit.
+              if (user.id === selfId) throw new RangeError(SELF_CHANGE);
               const id = (key: string) =>
                 values[key] ? String(values[key]) : null;
               await changeUserRole(api, user.id, {

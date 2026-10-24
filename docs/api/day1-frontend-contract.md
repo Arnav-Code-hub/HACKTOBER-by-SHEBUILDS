@@ -210,7 +210,7 @@ access. Writes marked † carry an `Idempotency-Key` header.
 | `GET work-orders?mine=true` | — | items `{"id","cluster_id","report_code","title","status","round","location_label","instructions","notes","allocated_paise","assigned_at"}` |
 | `PATCH work-orders/{id}` | `{"notes":"…"}` | `{"id","status"}`; the first update moves `funded → in_progress` |
 | `POST work-orders/{id}/complete` † | `{"media_ids":[…]}` (the caller's own `completion` media) | `{"id","status":"awaiting_verification"}` |
-| `GET work-orders/{id}/evidence` | — | evidence (above) |
+| `GET work-orders/{id}/evidence` | — | evidence (above), for **every** assigned order, open ones included: `after` and `card_url` are `null` until completion. On a correction round `after` is the returned attempt |
 
 `round` starts at 1 and increases each time the reporter answers "not fixed".
 Errors use FastAPI's `{"detail": …}`; a short string `detail` is shown to the
@@ -236,7 +236,11 @@ Scope is the API's: `mine=true` is the caller's own records and
 | `GET admin/audit?limit=50` | — | items `{"id","at","actor_name","actor_role","action","entity_type","entity_id","reason"}`, newest first |
 | `GET admin/users` | — (super admin) | items `{"id","display_name","email","role","district_id","department_id","institute_id"}` |
 | `GET organizations` | — (super admin) | items `{"id","type":"district\|department\|institute\|industry","name"}` |
-| `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction |
+| `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction. **403 when `{id}` is the caller**: nobody changes their own role or scope (the web client also refuses) |
+
+Changes made by one role reach another role's open page through its
+Refresh buttons or when that window regains focus; the API needs no push
+channel for the prototype.
 
 Status-count keys use the agreed status values. Submission `link` must be an
 HTTPS URL: the web client refuses any other scheme because it renders the link
@@ -245,7 +249,17 @@ for faculty.
 ## Citizen verification (Flutter)
 
 Report detail adds, once ranked, `rank`, `total_ranked`, `priority_score`,
-`supporter_count` and `score_breakdown` (shape above). Each `media` item may
+`supporter_count` and `score_breakdown` (shape above).
+
+`status_changed_at` (optional, ISO-8601 UTC) is when the report's **current
+effective status** took effect — for a clustered report, when the cluster
+entered that status. The app dates the current timeline step with it and
+nothing else: when it is absent the step is shown undated. `created_at` and
+`updated_at` are never used as transition times.
+
+Every field is type-checked on the client. A record with a wrong-typed field
+is a protocol error: a detail view shows an error, and a list skips that
+record and says how many it could not show. Each `media` item may
 carry `thumbnail_url`; the app shows thumbnails and opens `url` on tap.
 
 `GET /api/v1/reports/{id}/verification` — 404 until a work order has

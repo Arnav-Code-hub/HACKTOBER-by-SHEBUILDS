@@ -56,7 +56,8 @@ export function IndustryWorkspace() {
           rows={statements.data?.items}
           isLoading={statements.isLoading}
           error={statements.error}
-          onRetry={() => void statements.refetch()}
+          onRefresh={() => void statements.refetch()}
+          isRefreshing={statements.isFetching}
           emptyMessage="No problem statements are published yet."
           rowKey={(s) => s.id}
           onSelect={(s) => setStatementId(s.id)}
@@ -125,7 +126,8 @@ export function IndustryWorkspace() {
           rows={pledges.data?.items}
           isLoading={pledges.isLoading}
           error={pledges.error}
-          onRetry={() => void pledges.refetch()}
+          onRefresh={() => void pledges.refetch()}
+          isRefreshing={pledges.isFetching}
           emptyMessage="Your organisation has not pledged yet."
           rowKey={(p) => p.id}
         />

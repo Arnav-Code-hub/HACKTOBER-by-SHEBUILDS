@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { focusManager, useQuery } from "@tanstack/react-query";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({
@@ -128,5 +128,29 @@ describe("QueryProvider account isolation", () => {
     );
     expect(screen.getByTestId("key").textContent).not.toBe(first);
     expect(screen.getByTestId("key").textContent).toContain("district-2");
+  });
+
+  it("refetches on every return to the window, even when data is fresh", async () => {
+    let calls = 0;
+    const load = vi.fn(async () => `orders v${++calls}`);
+    signedIn("a");
+    render(
+      <QueryProvider>
+        <WorkOrders load={load} />
+      </QueryProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("orders").textContent).toBe("orders v1"),
+    );
+
+    // Well inside the 15 s staleTime: another role may still have changed it.
+    act(() => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("orders").textContent).toBe("orders v2"),
+    );
+    focusManager.setFocused(undefined);
   });
 });

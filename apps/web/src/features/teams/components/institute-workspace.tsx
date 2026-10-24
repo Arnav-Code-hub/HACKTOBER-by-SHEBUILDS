@@ -68,7 +68,8 @@ export function InstituteWorkspace() {
           rows={teams.data?.items}
           isLoading={teams.isLoading}
           error={teams.error}
-          onRetry={() => void teams.refetch()}
+          onRefresh={() => void teams.refetch()}
+          isRefreshing={teams.isFetching}
           emptyMessage="No teams from your institute yet."
           rowKey={(t) => t.id}
           onSelect={(t) => setTeamId(t.id)}

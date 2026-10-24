@@ -74,7 +74,8 @@ export function FacultyWorkspace() {
           rows={submissions.data?.items}
           isLoading={submissions.isLoading}
           error={submissions.error}
-          onRetry={() => void submissions.refetch()}
+          onRefresh={() => void submissions.refetch()}
+          isRefreshing={submissions.isFetching}
           emptyMessage="No submissions from your institute yet."
           rowKey={(s) => s.id}
           onSelect={(s) => setSubmissionId(s.id)}

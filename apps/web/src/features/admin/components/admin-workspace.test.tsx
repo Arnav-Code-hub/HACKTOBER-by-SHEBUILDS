@@ -121,4 +121,31 @@ describe("Admin workspace", () => {
       reason: "Promoted to department lead.",
     });
   });
+
+  it("refuses to change the signed-in super admin's own role or scope", async () => {
+    signInAs("super_admin");
+    const api = installFakeApi({
+      ...oversight,
+      "GET admin/users": () => ({
+        items: [
+          {
+            id: "staff-1",
+            display_name: "Me",
+            email: null,
+            role: "super_admin",
+            district_id: null,
+            department_id: null,
+            institute_id: null,
+          },
+        ],
+      }),
+      "GET organizations": () => ({ items: [] }),
+    });
+    await renderWorkspace(<AdminWorkspace />);
+    await waitFor(() => expect(screen.getByText("(you)")).toBeTruthy());
+    fireEvent.click(screen.getByText("Open"));
+    expect(screen.getByText(/cannot change your own role or scope/)).toBeTruthy();
+    expect(screen.queryByText("Apply change")).toBeNull();
+    expect(api.to("PATCH", "admin/users/staff-1")).toHaveLength(0);
+  });
 });

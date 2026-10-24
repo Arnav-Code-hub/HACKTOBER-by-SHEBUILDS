@@ -60,7 +60,8 @@ export function RankedClusters({
       rows={query.data?.items}
       isLoading={query.isLoading}
       error={query.error}
-      onRetry={() => void query.refetch()}
+      onRefresh={() => void query.refetch()}
+      isRefreshing={query.isFetching}
       emptyMessage="No clusters have been confirmed in this district yet."
       rowKey={(c) => c.id}
       onSelect={onSelect}

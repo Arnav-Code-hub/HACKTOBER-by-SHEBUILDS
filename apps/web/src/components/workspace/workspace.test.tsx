@@ -49,7 +49,7 @@ describe("RecordList", () => {
         rows={undefined}
         isLoading={false}
         error={new ApiError("Outside your scope.", 404)}
-        onRetry={retry}
+        onRefresh={retry}
       />,
     );
     expect(screen.getByRole("alert").textContent).toMatch(/Outside your scope/);
@@ -70,6 +70,57 @@ describe("RecordList", () => {
     );
     fireEvent.click(screen.getByText("Open"));
     expect(select).toHaveBeenCalledWith({ id: "r1", title: "Broken handpump" });
+  });
+});
+
+describe("RecordList refresh", () => {
+  const base = {
+    title: "Queue",
+    columns,
+    emptyMessage: "No reports are waiting.",
+    rowKey: (row: Row) => row.id,
+  };
+
+  it("offers Refresh for empty and populated lists, not while loading", () => {
+    const refresh = vi.fn();
+    const { rerender } = render(
+      <RecordList {...base} rows={undefined} isLoading onRefresh={refresh} />,
+    );
+    expect(screen.queryByText("Refresh")).toBeNull();
+
+    rerender(
+      <RecordList {...base} rows={[]} isLoading={false} onRefresh={refresh} />,
+    );
+    fireEvent.click(screen.getByText("Refresh"));
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <RecordList
+        {...base}
+        rows={[{ id: "r1", title: "Broken handpump" }]}
+        isLoading={false}
+        onRefresh={refresh}
+        isRefreshing
+      />,
+    );
+    const button = screen.getByText("Refreshing…") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+  });
+
+  it("keeps loaded rows when a background refresh fails", () => {
+    render(
+      <RecordList
+        {...base}
+        rows={[{ id: "r1", title: "Broken handpump" }]}
+        isLoading={false}
+        error={new ApiError("The service is unavailable.", 503)}
+        onRefresh={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Broken handpump")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /Could not refresh.*last loaded list/,
+    );
   });
 });
 

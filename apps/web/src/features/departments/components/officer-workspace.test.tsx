@@ -36,6 +36,15 @@ function order(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** An open order: the citizen's photo, nothing completed yet. */
+const openEvidence = {
+  report_code: "YDG-WTR-0001",
+  status: "funded",
+  before: { url: media("before").url, uploaded_at: "2026-10-20T08:00:00Z" },
+  after: null,
+  card_url: null,
+};
+
 const evidence = {
   report_code: "YDG-WTR-0001",
   status: "in_progress",
@@ -55,6 +64,7 @@ describe("Officer workspace", () => {
   it("submits completion only after the photos are verified", async () => {
     const api = installFakeApi({
       "GET work-orders": () => ({ items: [order()] }),
+      "GET work-orders/w1/evidence": () => openEvidence,
       "POST media/signature": () => ({
         upload_id: "intent-1",
         upload_url: CLOUDINARY,
@@ -105,6 +115,7 @@ describe("Officer workspace", () => {
   it("records a progress note; a funded order offers no completion yet", async () => {
     const api = installFakeApi({
       "GET work-orders": () => ({ items: [order({ status: "funded" })] }),
+      "GET work-orders/w1/evidence": () => openEvidence,
       "PATCH work-orders/w1": () => ({ id: "w1", status: "in_progress" }),
     });
     await renderWorkspace(<OfficerWorkspace />);
@@ -136,5 +147,52 @@ describe("Officer workspace", () => {
         screen.getByAltText("Completion evidence, YDG-WTR-0001"),
       ).toBeTruthy(),
     );
+  });
+
+  it("shows the citizen's photo before the first completion", async () => {
+    const api = installFakeApi({
+      "GET work-orders": () => ({ items: [order({ status: "funded" })] }),
+      "GET work-orders/w1/evidence": () => openEvidence,
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(() =>
+      expect(
+        screen.getByAltText("Reported problem, YDG-WTR-0001"),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.getByText("Completion evidence has not been uploaded yet."),
+    ).toBeTruthy();
+    expect(api.to("GET", "work-orders/w1/evidence")).toHaveLength(1);
+  });
+
+  it("labels a returned attempt's photo as the previous completion", async () => {
+    installFakeApi({
+      "GET work-orders": () => ({ items: [order({ round: 2 })] }),
+      "GET work-orders/w1/evidence": () => evidence,
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(() =>
+      expect(
+        screen.getByText("Previous completion · returned by the citizen"),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("offers Retry when the citizen's evidence cannot load", async () => {
+    installFakeApi({
+      "GET work-orders": () => ({ items: [order()] }),
+      "GET work-orders/w1/evidence": () =>
+        new Response("{}", { status: 503 }),
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(
+      () => expect(screen.getByText("Evidence unavailable")).toBeTruthy(),
+      { timeout: 4000 },
+    );
+    expect(screen.getByText("Retry")).toBeTruthy();
   });
 });

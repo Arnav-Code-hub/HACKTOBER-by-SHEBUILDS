@@ -1,5 +1,6 @@
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/json_fields.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/models/demand_enums.dart';
 import '../domain/verification.dart';
@@ -71,41 +72,44 @@ class HttpVerificationRepository implements VerificationRepository {
   );
 }
 
-/// Explicit mapping of the verification view. Photos must be HTTPS; an
-/// unexpected shape fails visibly rather than showing invented evidence.
+/// Explicit mapping of the verification view. Photos must be HTTPS; any
+/// malformed field fails visibly as a [ServerFailure] rather than showing
+/// invented evidence or throwing a `TypeError`.
 VerificationRequest verificationRequestFromJson(
   String demandId,
   Object? value, {
   DateTime? now,
 }) {
-  final data = jsonObject(value);
-  final workOrderId = data['work_order_id'];
-  final title = data['title'];
-  final round = data['round'];
-  final canVerify = data['can_verify'];
-  final category = DemandCategory.values
-      .where((c) => c.name == data['category'])
-      .firstOrNull;
-  if (workOrderId is! String ||
-      title is! String ||
-      round is! int ||
-      round < 1 ||
-      canVerify is! bool ||
-      category == null) {
+  try {
+    return _verificationRequest(demandId, jsonObject(value), now);
+  } on Failure {
+    rethrow;
+  } on TypeError {
     throw const ServerFailure('The API returned an invalid verification.');
   }
-  final before = _photo(data['before'], required: true)!;
-  final after = _photo(data['after'], required: false);
-  final card = data['card_url'];
-  if (card != null && (card is! String || Uri.tryParse(card)?.scheme != 'https')) {
-    throw const ServerFailure('The API returned an invalid evidence card.');
+}
+
+VerificationRequest _verificationRequest(
+  String demandId,
+  Map<String, dynamic> data,
+  DateTime? now,
+) {
+  final round = data.optionalInt('round');
+  final canVerify = data.requiredBool('can_verify');
+  final category = DemandCategory.values
+      .where((c) => c.name == data.requiredString('category'))
+      .firstOrNull;
+  if (round == null || round < 1 || category == null) {
+    throw const ServerFailure('The API returned an invalid verification.');
   }
+  final before = _photo(data['before']);
+  final after = data['after'] == null ? null : _photo(data['after']);
 
   return VerificationRequest(
     demandId: demandId,
-    demandTitle: title,
-    reportCode: data['report_code'] as String?,
-    workOrderId: workOrderId,
+    demandTitle: data.requiredString('title'),
+    reportCode: data.optionalString('report_code'),
+    workOrderId: data.requiredString('work_order_id'),
     round: round,
     question: switch (category) {
       DemandCategory.water => 'Is the water source working now?',
@@ -117,22 +121,19 @@ VerificationRequest verificationRequestFromJson(
     reportedAgo: Formatters.relative(before.at, now: now),
     afterPhotoUrl: after?.url,
     completedAgo: after == null ? '' : Formatters.relative(after.at, now: now),
-    evidenceCardUrl: card as String?,
+    evidenceCardUrl: data.optionalHttpsUrl('card_url'),
     canVerify: canVerify,
     blockedReason: canVerify
         ? null
-        : (data['blocked_reason'] as String? ??
+        : (data.optionalString('blocked_reason') ??
               'This repair is not waiting for your verification.'),
   );
 }
 
-({String url, DateTime at})? _photo(Object? value, {required bool required}) {
-  if (value == null && !required) return null;
+({String url, DateTime at}) _photo(Object? value) {
   final photo = jsonObject(value);
-  final url = photo['url'];
-  final at = DateTime.tryParse(photo['uploaded_at']?.toString() ?? '');
-  if (url is! String || Uri.tryParse(url)?.scheme != 'https' || at == null) {
-    throw const ServerFailure('The API returned invalid evidence photos.');
-  }
-  return (url: url, at: at);
+  return (
+    url: photo.requiredHttpsUrl('url'),
+    at: photo.requiredDate('uploaded_at'),
+  );
 }

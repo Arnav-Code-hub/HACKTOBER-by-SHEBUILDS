@@ -211,7 +211,8 @@ export function DepartmentWorkspace() {
           rows={statements.data?.items}
           isLoading={statements.isLoading}
           error={statements.error}
-          onRetry={() => void statements.refetch()}
+          onRefresh={() => void statements.refetch()}
+          isRefreshing={statements.isFetching}
           emptyMessage="No problem statements yet."
           rowKey={(s) => s.id}
           onSelect={(s) => setStatementId(s.id)}

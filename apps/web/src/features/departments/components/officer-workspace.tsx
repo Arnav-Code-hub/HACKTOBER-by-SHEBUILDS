@@ -63,7 +63,8 @@ export function OfficerWorkspace() {
           rows={orders.data?.items}
           isLoading={orders.isLoading}
           error={orders.error}
-          onRetry={() => void orders.refetch()}
+          onRefresh={() => void orders.refetch()}
+          isRefreshing={orders.isFetching}
           emptyMessage="No work orders are assigned to you."
           rowKey={(o) => o.id}
           onSelect={(o) => setSelectedId(o.id)}
@@ -92,11 +93,10 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
   const invalidate = useInvalidate();
   const [photos, setPhotos] = useState<Media[]>([]);
   const [uploading, setUploading] = useState(0);
-  const hasEvidence =
-    order.status === "awaiting_verification" ||
-    order.status === "citizen_verified" ||
-    order.round > 1;
-  const evidence = useWorkOrderEvidence(order.id, hasEvidence);
+  // Loaded for every order, open ones included: the officer needs the
+  // citizen's photo before photographing the completed work.
+  const evidence = useWorkOrderEvidence(order.id, true);
+  const returned = order.round > 1 && order.status === "in_progress";
 
   async function refresh() {
     await Promise.all([
@@ -116,7 +116,7 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
           <h2>{order.title}</h2>
           <StatusBadge status={order.status} />
         </div>
-        {order.round > 1 && order.status === "in_progress" && (
+        {returned && (
           <p className="jm-notice" role="status">
             The citizen reported this was not fixed. This is correction round{" "}
             {order.round}; upload new completion evidence when done.
@@ -136,6 +136,33 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
           ]}
         />
       </section>
+
+      {evidence.data ? (
+        <EvidenceView
+          evidence={evidence.data}
+          afterLabel={
+            returned ? "Previous completion · returned by the citizen" : "After"
+          }
+        />
+      ) : evidence.isLoading ? (
+        <section className="jm-panel">
+          <p role="status">Loading the citizen&rsquo;s evidence…</p>
+        </section>
+      ) : (
+        <section className="jm-panel" role="alert">
+          <h2>Evidence unavailable</h2>
+          <p className="jm-muted">
+            The citizen&rsquo;s photo could not be loaded.
+          </p>
+          <button
+            className="jm-button jm-button-secondary"
+            onClick={() => void evidence.refetch()}
+            disabled={evidence.isFetching}
+          >
+            {evidence.isFetching ? "Retrying…" : "Retry"}
+          </button>
+        </section>
+      )}
 
       {(order.status === "funded" || order.status === "in_progress") && (
         <ActionForm
@@ -205,25 +232,6 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
           />
         </section>
       )}
-
-      {hasEvidence &&
-        (evidence.data ? (
-          <EvidenceView evidence={evidence.data} />
-        ) : evidence.isLoading ? (
-          <section className="jm-panel">
-            <p role="status">Loading evidence…</p>
-          </section>
-        ) : evidence.error ? (
-          <section className="jm-panel" role="alert">
-            <h2>Evidence unavailable</h2>
-            <button
-              className="jm-button jm-button-secondary"
-              onClick={() => void evidence.refetch()}
-            >
-              Retry
-            </button>
-          </section>
-        ) : null)}
     </>
   );
 }

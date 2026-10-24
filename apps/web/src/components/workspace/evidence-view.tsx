@@ -11,7 +11,17 @@ const date = new Intl.DateTimeFormat("en-IN", {
  * evidence card. Matching photos support a human judgement; they are not
  * proof that a repair happened, and the page says so.
  */
-export function EvidenceView({ evidence }: { evidence: Evidence }) {
+export function EvidenceView({
+  evidence,
+  afterLabel = "After",
+}: {
+  evidence: Evidence;
+  /**
+   * Caption for the completion photo. On a correction round it is the
+   * attempt the citizen returned, and must not read as the current result.
+   */
+  afterLabel?: string;
+}) {
   return (
     <section
       className="jm-panel"
@@ -40,7 +50,7 @@ export function EvidenceView({ evidence }: { evidence: Evidence }) {
                 alt={`Completion evidence, ${evidence.report_code}`}
               />
               <figcaption>
-                <strong>After</strong> · uploaded{" "}
+                <strong>{afterLabel}</strong> · uploaded{" "}
                 {date.format(new Date(evidence.after.uploaded_at))}
               </figcaption>
             </>
