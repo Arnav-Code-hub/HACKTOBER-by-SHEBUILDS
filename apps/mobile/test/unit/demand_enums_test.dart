@@ -12,7 +12,17 @@ void main() {
         'Funded',
         'In Progress',
         'Citizen Verified',
+        // Off the main path; see the rejection test below.
+        'Not Accepted',
       ]);
+    });
+
+    test('rejection sits outside the lifecycle order', () {
+      expect(DemandStatus.rejected.isOnLifecycle, isFalse);
+      expect(DemandStatus.rejected.stage, isNull);
+      expect(DemandStatus.citizenVerified.isBefore(DemandStatus.rejected), isFalse);
+      expect(DemandStatus.rejected.isBefore(DemandStatus.reported), isFalse);
+      expect(DemandStatus.reported.stage, 0);
     });
 
     test('isBefore follows the lifecycle order', () {

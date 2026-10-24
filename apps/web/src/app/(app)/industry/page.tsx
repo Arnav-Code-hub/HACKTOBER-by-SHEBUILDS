@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { IndustryWorkspace } from "@/features/funding/components/industry-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="industry" />;
+  return <IndustryWorkspace />;
 }

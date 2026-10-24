@@ -22,6 +22,7 @@ class Demand {
     this.longitude,
     this.distanceKm,
     this.photoUrls = const <String>[],
+    this.photoThumbnailUrls = const <String>[],
     this.clusterId,
     this.supporterCount = 0,
     this.rank,
@@ -31,6 +32,8 @@ class Demand {
     this.timeline = const <TimelineEvent>[],
     this.channel = ReportChannel.voice,
     this.updatedAt,
+    this.awaitingVerification = false,
+    this.rejectionReason,
   });
 
   final String id;
@@ -52,6 +55,10 @@ class Demand {
   /// Straight-line distance from the citizen, used by the "Near You" list.
   final double? distanceKm;
   final List<String> photoUrls;
+
+  /// Low-bandwidth variants, index-aligned with [photoUrls]; empty when the
+  /// source provides none.
+  final List<String> photoThumbnailUrls;
   final String? clusterId;
   final int supporterCount;
   final int? rank;
@@ -64,6 +71,13 @@ class Demand {
   final ReportChannel channel;
   final DateTime createdAt;
   final DateTime? updatedAt;
+
+  /// Completion evidence is uploaded and the reporter's verdict is pending.
+  /// Shown as [DemandStatus.inProgress] on the timeline.
+  final bool awaitingVerification;
+
+  /// The Panchayat's reason when [status] is [DemandStatus.rejected].
+  final String? rejectionReason;
 
   bool get hasLocation => latitude != null && longitude != null;
 
@@ -78,6 +92,9 @@ class Demand {
     List<String>? photoUrls,
     double? latitude,
     double? longitude,
+    bool? awaitingVerification,
+    String? rejectionReason,
+    bool clearRejectionReason = false,
   }) {
     return Demand(
       id: id,
@@ -95,6 +112,7 @@ class Demand {
       longitude: longitude ?? this.longitude,
       distanceKm: distanceKm,
       photoUrls: photoUrls ?? this.photoUrls,
+      photoThumbnailUrls: photoUrls == null ? photoThumbnailUrls : const [],
       clusterId: clusterId ?? this.clusterId,
       supporterCount: supporterCount ?? this.supporterCount,
       rank: rank ?? this.rank,
@@ -105,6 +123,10 @@ class Demand {
       channel: channel,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
+      awaitingVerification: awaitingVerification ?? this.awaitingVerification,
+      rejectionReason: clearRejectionReason
+          ? null
+          : (rejectionReason ?? this.rejectionReason),
     );
   }
 
@@ -123,11 +145,15 @@ class PriorityFactor {
     required this.label,
     required this.score,
     this.explanation = '',
+    this.isDemo = false,
   });
 
   final String label;
   final int score;
   final String explanation;
+
+  /// A seeded or neutral-default input, not an official measurement.
+  final bool isDemo;
 }
 
 /// One node on the status timeline.

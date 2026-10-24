@@ -10,6 +10,40 @@ Status: proposed integration contract implemented by Developer B's clients. Deve
 - JSON uses snake_case. Datetimes are ISO-8601 UTC strings. IDs are opaque strings.
 - Non-2xx responses are errors; the client must not treat a login, upload, or report as successful until the relevant operation succeeds. `detail` may be a safe message or a FastAPI validation-error list.
 - An empty list is returned as `{"items": []}`. A missing feature returns an explicit error, never a fabricated success.
+- Before the first profile request, both clients call unauthenticated `GET /health` (at the origin, outside `/api/v1`) and wait up to about 75 seconds for a sleeping free-tier host to wake. `/health` must stay public and must be covered by the CORS configuration.
+- The Flutter app accepts only `citizen` profiles; staff and partner roles use the web workspace.
+
+## Status, category and severity values
+
+These are the only values the API sends and accepts. The backend enum
+(`services/api/app/shared/enums.py`), the Flutter mapping
+(`apps/mobile/lib/features/report/data/report_dto.dart`) and this table change
+together.
+
+| `status` | Meaning | Set by |
+|---|---|---|
+| `reported` | Saved; awaiting Panchayat validation | Citizen creates the report |
+| `verified` | Validated by the Panchayat — **not** citizen confirmation | Panchayat |
+| `rejected` | Declined by the Panchayat; `rejection_reason` is present | Panchayat |
+| `prioritised` | In a cluster and in the ranked list | Panchayat confirms the cluster |
+| `funded` | Allocation saved and work order assigned | Department |
+| `in_progress` | Officer is working on it | Officer's first update, or a negative citizen verdict |
+| `awaiting_verification` | Completion evidence uploaded; reporter's verdict pending | Officer completes the work order |
+| `citizen_verified` | The original reporter confirmed the repair | Reporter |
+
+Allowed transitions: `reported → verified | rejected`, `verified → prioritised`,
+`prioritised → funded`, `funded → in_progress`,
+`in_progress → awaiting_verification`,
+`awaiting_verification → citizen_verified | in_progress`. Once a report is in a
+cluster, the API returns the cluster's status for it.
+
+`category`: `water`, `roads`, `lighting`, `sanitation`, `health`, `education`,
+`electricity`, `transport`, `other`.
+
+`severity`: `low`, `medium`, `high`, `critical`.
+
+Clients treat any other value as a protocol error for that record only: a list
+skips the record and says how many it could not show.
 
 ## Current profile
 
@@ -119,6 +153,136 @@ The API derives reporter identity and district from the verified principal and t
 ```
 
 Submission media IDs and display URLs are separate fields. Do not put bare IDs into `photoUrls`. Advanced score, cluster and timeline fields may be added later; absence must not turn into invented live figures.
+
+## Shapes the staff workspace expects (Day 2+)
+
+Implemented on the web client in `apps/web/src/lib/api/schemas.ts`; responses
+outside these shapes are shown as errors, not coerced.
+
+Ranking breakdown, on a report or ranked cluster as `score_breakdown`:
+
+```json
+[{"factor":"support","label":"Community support","score":72.4,"weight":0.30,"is_demo":false},
+ {"factor":"equity","label":"Equity","score":50,"weight":0.20,"is_demo":true}]
+```
+
+`score` is 0–100 and `weight` 0–1. `is_demo` is true for a seeded or neutral-default input, which the UI labels "Demo value".
+
+Work-order evidence, `GET /api/v1/work-orders/{id}/evidence`:
+
+```json
+{
+  "report_code": "YDG-WTR-0001",
+  "status": "awaiting_verification",
+  "before": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-20T10:00:00Z"},
+  "after": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-24T10:00:00Z"},
+  "card_url": "https://res.cloudinary.com/..."
+}
+```
+
+`after` and `card_url` may be `null`. All URLs are HTTPS, server-signed Cloudinary delivery URLs.
+
+Staff uploads use the same `media/signature` → Cloudinary → `media/complete` flow as the citizen app, with `kind: "completion"` for officer evidence.
+
+Money is always integer paise (`amount_paise`); the web form converts typed rupees.
+
+## Staff workspace endpoints (Panchayat, Department, Officer)
+
+What the web pages call, as implemented in `apps/web/src/features/*/api.ts`.
+Lists return `{"items": [...]}`. The API scopes every list and write to the
+caller's district, department or assignment; the client never filters for
+access. Writes marked † carry an `Idempotency-Key` header.
+
+| Call | Body | Response |
+|---|---|---|
+| `GET reports?status=reported\|verified` | — | report read DTOs (above), plus `rejection_reason` |
+| `GET reports/{id}` | — | report read DTO |
+| `POST reports/{id}/validate` | `{"decision":"verify"}` or `{"decision":"reject","reason":"…"}` | `{"id","status"}` |
+| `GET reports/{id}/cluster-suggestions` | — | items `{"id","title","category","distance_m","report_count","supporter_count"}` |
+| `POST reports/{id}/cluster` | `{"cluster_id":"…"}` or `{"new":true}` | `{"id","status"}` |
+| `GET clusters/ranked` | — | items `{"id","title","category","status","rank","priority_score","supporter_count","report_count","anchor_report_code","infrastructure_gap","equity_index","inputs_are_demo","score_breakdown"}` |
+| `PATCH clusters/{id}/inputs` | `{"infrastructure_gap":0-100,"equity_index":0-100}` | `{"id"}` |
+| `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's district |
+| `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` | `{"allocation_id","work_order_id"}`; 409 if the cluster is already funded |
+| `GET statements?status=` | — | items `{"id","title","body","status":"draft\|published","cluster_id","published_at"}` |
+| `POST statements` † | `{"title","body","cluster_id"?}` | statement |
+| `POST statements/{id}/publish` | — | statement |
+| `GET work-orders?mine=true` | — | items `{"id","cluster_id","report_code","title","status","round","location_label","instructions","notes","allocated_paise","assigned_at"}` |
+| `PATCH work-orders/{id}` | `{"notes":"…"}` | `{"id","status"}`; the first update moves `funded → in_progress` |
+| `POST work-orders/{id}/complete` † | `{"media_ids":[…]}` (the caller's own `completion` media) | `{"id","status":"awaiting_verification"}` |
+| `GET work-orders/{id}/evidence` | — | evidence (above) |
+
+`round` starts at 1 and increases each time the reporter answers "not fixed".
+Errors use FastAPI's `{"detail": …}`; a short string `detail` is shown to the
+official verbatim, so keep it user-readable.
+
+## Partner and oversight endpoints (Student, Faculty, Institute, Industry, Admin)
+
+As implemented in `apps/web/src/features/{teams,projects,funding,admin}/api.ts`.
+Scope is the API's: `mine=true` is the caller's own records and
+`institute=me` the caller's institute. † carries an `Idempotency-Key`.
+
+| Call | Body | Response |
+|---|---|---|
+| `GET teams?mine=true` / `GET teams?institute=me` | — | items `{"id","name","statement_id","statement_title","institute_approved","member_count","created_at"}` |
+| `POST teams` † | `{"name","statement_id"}` (published statements only) | team |
+| `POST teams/{id}/approve` | — (institute role, own institute) | team |
+| `GET submissions?mine=true` / `GET submissions?institute=me` | — | items `{"id","team_id","team_name","statement_title","title","summary","link","submitted_at","review_count","my_review":{"score","comment"}\|null}` |
+| `POST submissions` † | `{"team_id","title","summary","link"?}` — approved teams only; `link` HTTPS | submission |
+| `POST submissions/{id}/reviews` † | `{"score":1-5,"comment"}` — own institute, once per reviewer (409 on a second) | `{"id"}` |
+| `GET sponsorships?mine=true` | — | items `{"id","statement_id","statement_title","amount_paise","status":"pledged","pledged_at"}` |
+| `POST statements/{id}/sponsorships` † | `{"amount_paise"}` | sponsorship |
+| `GET admin/summary` | — | `{"district_name","reports_by_status":{status:count},"cluster_count","work_orders_by_status":{status:count},"allocated_paise","pledged_paise"}` |
+| `GET admin/audit?limit=50` | — | items `{"id","at","actor_name","actor_role","action","entity_type","entity_id","reason"}`, newest first |
+| `GET admin/users` | — (super admin) | items `{"id","display_name","email","role","district_id","department_id","institute_id"}` |
+| `GET organizations` | — (super admin) | items `{"id","type":"district\|department\|institute\|industry","name"}` |
+| `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction |
+
+Status-count keys use the agreed status values. Submission `link` must be an
+HTTPS URL: the web client refuses any other scheme because it renders the link
+for faculty.
+
+## Citizen verification (Flutter)
+
+Report detail adds, once ranked, `rank`, `total_ranked`, `priority_score`,
+`supporter_count` and `score_breakdown` (shape above). Each `media` item may
+carry `thumbnail_url`; the app shows thumbnails and opens `url` on tap.
+
+`GET /api/v1/reports/{id}/verification` — 404 until a work order has
+completion evidence or is awaiting verification:
+
+```json
+{
+  "work_order_id": "w1",
+  "report_code": "YDG-WTR-0001",
+  "title": "Handpump not working",
+  "category": "water",
+  "status": "awaiting_verification",
+  "round": 1,
+  "can_verify": true,
+  "blocked_reason": null,
+  "before": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-11T10:00:00Z"},
+  "after": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-24T10:00:00Z"},
+  "card_url": "https://res.cloudinary.com/..."
+}
+```
+
+`can_verify` is true only for the original reporter while the work order is
+`awaiting_verification`; otherwise `blocked_reason` is a short sentence the
+citizen sees. `after` and `card_url` may be null. The app shows the UI hint;
+the API enforces it on the write below.
+
+`POST /api/v1/work-orders/{id}/verify` with `Idempotency-Key:
+verify-{work_order_id}-{round}`:
+
+```json
+{"verdict": false, "comment": "Still dry in the evening."}
+```
+
+`comment` is optional (≤ 500 characters). `true` → `citizen_verified`;
+`false` → `in_progress` with `round` + 1 and **no new allocation**. A second
+verdict for the same round returns 409; anyone but the original reporter
+gets 403.
 
 ## Optional suggestion
 

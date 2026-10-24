@@ -86,10 +86,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             ))}
         </nav>
         <div className="jm-sidebar-note">
-          Day 1 foundation
+          Your access
           <br />
           <span>
-            Workflow data and actions are pending backend integration.
+            Every list and action is scoped by the JanMaang API to your role and
+            organisation.
           </span>
         </div>
       </aside>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { QueryProvider } from "@/lib/api/use-api";
 import { SessionProvider } from "@/lib/auth/session";
 
 import "@/styles/globals.css";
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { StudentWorkspace } from "@/features/teams/components/student-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="student" />;
+  return <StudentWorkspace />;
 }

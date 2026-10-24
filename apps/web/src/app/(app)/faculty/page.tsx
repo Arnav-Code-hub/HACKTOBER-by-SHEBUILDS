@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { FacultyWorkspace } from "@/features/projects/components/faculty-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="faculty" />;
+  return <FacultyWorkspace />;
 }

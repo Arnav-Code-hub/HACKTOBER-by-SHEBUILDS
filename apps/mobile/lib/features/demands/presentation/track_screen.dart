@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/providers.dart';
+import '../data/http_demands_repository.dart';
 import 'widgets/demand_list_card.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
@@ -112,6 +114,10 @@ class _LiveReportList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reports = ref.watch(myDemandsProvider);
+    final repository = ref.watch(demandsRepositoryProvider);
+    final unreadable = repository is HttpDemandsRepository
+        ? repository.unreadableInLastLoad
+        : 0;
     return Scaffold(
       appBar: JmAppBar(
         showBrand: true,
@@ -137,7 +143,19 @@ class _LiveReportList extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),
-              if (items.isEmpty)
+              if (unreadable > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    unreadable == 1
+                        ? '1 report can’t be shown in this version of the app.'
+                        : '$unreadable reports can’t be shown in this version of the app.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              if (items.isEmpty && unreadable == 0)
                 const Text('No reports saved yet. Use Report to submit one.'),
               for (final demand in items)
                 Padding(

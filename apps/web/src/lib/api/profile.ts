@@ -36,6 +36,36 @@ export function parseProfile(value: unknown, expectedUid: string): UserProfile {
   return result.data;
 }
 
+/**
+ * Waits for a sleeping free-tier API host to wake before the profile request.
+ * Unauthenticated `GET /health`; no token is sent. The caller's signal bounds
+ * the total wait.
+ */
+export async function wakeApi(
+  apiOrigin: string,
+  signal: AbortSignal,
+  { attempts = 2, pauseMs = 3_000 } = {},
+): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(`${apiOrigin}/health`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        credentials: "omit",
+        signal,
+      });
+      if (response.ok) return;
+    } catch (error) {
+      if (signal.aborted) throw error;
+    }
+    if (attempt >= attempts)
+      throw new ProfileError(
+        "The API is starting up or unreachable. Retry in a minute.",
+      );
+    await new Promise((resolve) => setTimeout(resolve, pauseMs));
+  }
+}
+
 /** The token is kept in Firebase/in memory, never copied into a role cookie. */
 export async function currentProfile(
   apiOrigin: string,

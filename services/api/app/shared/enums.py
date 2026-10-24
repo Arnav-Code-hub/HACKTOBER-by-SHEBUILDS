@@ -8,14 +8,22 @@ from enum import StrEnum
 
 
 class ProblemStatus(StrEnum):
+    """The agreed report lifecycle. Mirrored by the Flutter mapping in
+    apps/mobile/lib/features/report/data/report_dto.dart and documented in
+    docs/api/day1-frontend-contract.md — change all three together.
+
+    VERIFIED means validated by the Panchayat. Citizen confirmation of a repair
+    is CITIZEN_VERIFIED.
+    """
+
     REPORTED = "reported"
-    CLUSTERED = "clustered"
-    RANKED = "ranked"
-    FUNDED = "funded"
-    IN_PROGRESS = "in_progress"
-    RESOLVED = "resolved"
     VERIFIED = "verified"
     REJECTED = "rejected"
+    PRIORITISED = "prioritised"
+    FUNDED = "funded"
+    IN_PROGRESS = "in_progress"
+    AWAITING_VERIFICATION = "awaiting_verification"
+    CITIZEN_VERIFIED = "citizen_verified"
 
 
 class Severity(StrEnum):

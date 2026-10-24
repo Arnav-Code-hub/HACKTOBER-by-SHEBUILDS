@@ -15,9 +15,16 @@ class VerificationSubmission {
     this.note = '',
     this.latitude,
     this.longitude,
+    this.workOrderId,
+    this.round,
   });
 
   final String demandId;
+
+  /// The work order and verification round the verdict answers. Required by
+  /// the live API; one verdict is accepted per round.
+  final String? workOrderId;
+  final int? round;
   final VerificationKind kind;
   final bool isFixed;
   final List<ChecklistItem> checklist;
@@ -71,8 +78,9 @@ class FieldAssignment {
   final String? beforePhotoUrl;
 }
 
-/// What the citizen verification screen shows: the original report and its
-/// "before" photograph, against which they judge the current state.
+/// What the citizen verification screen shows: the original report's
+/// "before" photograph beside the officer's completion photograph. They are
+/// evidence for the citizen's own judgement, not proof of a repair.
 @immutable
 class VerificationRequest {
   const VerificationRequest({
@@ -81,6 +89,14 @@ class VerificationRequest {
     required this.question,
     this.beforePhotoUrl,
     this.reportedAgo = '',
+    this.workOrderId,
+    this.reportCode,
+    this.afterPhotoUrl,
+    this.completedAgo = '',
+    this.evidenceCardUrl,
+    this.round = 1,
+    this.canVerify = true,
+    this.blockedReason,
   });
 
   final String demandId;
@@ -90,4 +106,25 @@ class VerificationRequest {
   final String question;
   final String? beforePhotoUrl;
   final String reportedAgo;
+
+  final String? workOrderId;
+  final String? reportCode;
+
+  /// The officer's completion evidence, when uploaded.
+  final String? afterPhotoUrl;
+  final String completedAgo;
+
+  /// Server-generated before/after card. Its verdict text comes from saved
+  /// data: "Awaiting citizen verification" until a verdict is recorded.
+  final String? evidenceCardUrl;
+
+  /// Verification round; above 1 after an earlier "not fixed" verdict.
+  final int round;
+
+  /// Whether this citizen may record a verdict now. Only the original
+  /// reporter can, and only while the work awaits verification.
+  final bool canVerify;
+
+  /// Why [canVerify] is false, in words the citizen can act on.
+  final String? blockedReason;
 }

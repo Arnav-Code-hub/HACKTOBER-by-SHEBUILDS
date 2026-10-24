@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { PanchayatWorkspace } from "@/features/problems/components/panchayat-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="panchayat" />;
+  return <PanchayatWorkspace />;
 }

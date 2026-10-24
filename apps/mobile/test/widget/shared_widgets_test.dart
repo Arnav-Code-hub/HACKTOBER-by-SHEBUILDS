@@ -58,8 +58,8 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Funded & Fixed'), findsOneWidget);
-    expect(find.text('Under Review'), findsOneWidget);
+    expect(find.text('Citizen Verified'), findsOneWidget);
+    expect(find.text('Panchayat Validated'), findsOneWidget);
     expect(find.text('HIGH PRIORITY'), findsOneWidget);
   });
 

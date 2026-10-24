@@ -2,7 +2,7 @@
 
 import { FirebaseError } from "firebase/app";
 import {
-  onIdTokenChanged,
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   type User,
@@ -18,13 +18,14 @@ import {
 import {
   currentProfile,
   ProfileError,
+  wakeApi,
   type UserProfile,
 } from "@/lib/api/profile";
 import { browserAuth } from "@/lib/auth/firebase";
 import { clientConfiguration } from "@/lib/config";
 
 type SessionState =
-  | { status: "loading" }
+  | { status: "loading"; message?: string }
   | { status: "setup"; problems: string[] }
   | { status: "signed-out" }
   | { status: "error"; message: string }
@@ -78,11 +79,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let sequence = 0;
     let controller: AbortController | undefined;
     let unsubscribe: (() => void) | undefined;
+    // The Firebase identity whose profile is confirmed or being confirmed.
+    // A repeat callback for it must not reset the workspace.
+    let currentUid: string | undefined;
     try {
       const auth = browserAuth(configuration.firebase);
-      unsubscribe = onIdTokenChanged(
+      // Sign-in and sign-out only. onIdTokenChanged would also fire on the
+      // hourly token refresh and unmount every open dashboard form; requests
+      // fetch a fresh token with getIdToken() instead.
+      unsubscribe = onAuthStateChanged(
         auth,
         (user) => {
+          if (user && user.uid === currentUid) return;
+          currentUid = user?.uid;
           const request = ++sequence;
           controller?.abort();
           if (!user) {
@@ -92,6 +101,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setState({ status: "loading" });
           const activeController = new AbortController();
           controller = activeController;
+          // Covers waking a sleeping free-tier host plus the profile request.
           const timeout = setTimeout(() => {
             activeController.abort();
             if (request === sequence) {
@@ -101,9 +111,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                   "The profile request timed out. Retry after the API is available.",
               });
             }
-          }, 15_000);
+          }, 90_000);
           void (async () => {
             try {
+              setState({
+                status: "loading",
+                message:
+                  "Waking the server — this can take up to a minute on first load.",
+              });
+              await wakeApi(configuration.apiOrigin, activeController.signal);
+              if (request !== sequence) return;
+              setState({ status: "loading" });
               const token = await user.getIdToken();
               const profile = await currentProfile(
                 configuration.apiOrigin,

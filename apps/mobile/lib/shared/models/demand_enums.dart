@@ -9,15 +9,25 @@ enum DemandStatus {
   prioritised('Prioritised'),
   funded('Funded'),
   inProgress('In Progress'),
-  citizenVerified('Citizen Verified');
+  citizenVerified('Citizen Verified'),
+
+  /// Declined by the Panchayat. Outside the progression above: it has no
+  /// stage and is neither before nor after any other status.
+  rejected('Not Accepted');
 
   const DemandStatus(this.label);
 
   final String label;
 
-  int get stage => index;
+  /// Whether this status is a step of the normal lifecycle.
+  bool get isOnLifecycle => this != rejected;
 
-  bool isBefore(DemandStatus other) => index < other.index;
+  /// Position in the lifecycle; null for [rejected], which has none.
+  int? get stage => isOnLifecycle ? index : null;
+
+  /// Lifecycle order. Always false when either status is [rejected].
+  bool isBefore(DemandStatus other) =>
+      isOnLifecycle && other.isOnLifecycle && index < other.index;
 
   static DemandStatus fromName(String? value) => DemandStatus.values.firstWhere(
     (s) => s.name == value,

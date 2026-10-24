@@ -5,6 +5,7 @@ enum AppRoute {
   onboarding('/onboarding'),
   login('/login'),
   otp('/login/otp'),
+  sessionError('/session-error'),
   home('/home'),
   track('/track'),
   report('/report'),

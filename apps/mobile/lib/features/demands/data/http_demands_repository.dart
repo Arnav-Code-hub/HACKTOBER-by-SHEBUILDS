@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/models/demand_enums.dart';
@@ -10,6 +12,10 @@ class HttpDemandsRepository implements DemandsRepository {
   HttpDemandsRepository(this._api);
   final ApiClient _api;
 
+  /// Records in the last "my reports" load that this build could not read.
+  /// They are skipped rather than replaced with invented placeholders.
+  int unreadableInLastLoad = 0;
+
   @override
   Stream<List<Demand>> watchMyDemands(String uid) async* {
     final data = jsonObject(
@@ -19,7 +25,20 @@ class HttpDemandsRepository implements DemandsRepository {
     if (items is! List) {
       throw const ServerFailure('The API returned an invalid report list.');
     }
-    yield items.map(demandFromJson).toList();
+    // One unreadable record must not hide the citizen's other reports.
+    final readable = <Demand>[];
+    var unreadable = 0;
+    for (final item in items) {
+      try {
+        readable.add(demandFromJson(item));
+      } on Failure catch (failure) {
+        unreadable++;
+        final id = item is Map ? item['id'] : null;
+        debugPrint('Skipped unreadable report $id: ${failure.message}');
+      }
+    }
+    unreadableInLastLoad = unreadable;
+    yield readable;
   }
 
   @override

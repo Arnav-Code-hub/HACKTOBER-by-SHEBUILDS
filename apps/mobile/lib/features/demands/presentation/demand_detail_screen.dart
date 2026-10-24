@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/providers.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
+import '../../../shared/models/demand_enums.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
 import '../../../shared/widgets/jm_metric_bar.dart';
@@ -28,6 +31,7 @@ class DemandDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final demandAsync = ref.watch(demandProvider(demandId));
+    final userId = ref.watch(currentUserProvider)?.uid;
 
     return Scaffold(
       appBar: JmAppBar.task(title: 'Demand'),
@@ -37,16 +41,22 @@ class DemandDetailScreen extends ConsumerWidget {
           error: error,
           onRetry: () => ref.invalidate(demandProvider(demandId)),
         ),
-        data: (demand) => _Body(demand: demand),
+        data: (demand) => _Body(
+          demand: demand,
+          // Only the original reporter is asked; the API enforces it too.
+          canVerify:
+              demand.awaitingVerification && demand.reporterId == userId,
+        ),
       ),
     );
   }
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.demand});
+  const _Body({required this.demand, required this.canVerify});
 
   final Demand demand;
+  final bool canVerify;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +116,57 @@ class _Body extends StatelessWidget {
             ),
           ),
         ],
+        if (demand.status == DemandStatus.rejected) ...<Widget>[
+          const SizedBox(height: Insets.md),
+          JmCard(
+            backgroundColor: scheme.errorContainer,
+            borderColor: scheme.error,
+            child: Text(
+              demand.rejectionReason == null
+                  ? 'The Panchayat did not accept this report.'
+                  : 'The Panchayat did not accept this report: '
+                        '${demand.rejectionReason}',
+              style: JanMaangTypography.bodyMd.copyWith(
+                color: scheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+        if (canVerify) ...<Widget>[
+          const SizedBox(height: Insets.md),
+          JmCard(
+            backgroundColor: scheme.tertiaryContainer,
+            borderColor: scheme.tertiary,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'The officer says the work is done.',
+                  style: JanMaangTypography.titleLg.copyWith(
+                    color: scheme.onTertiaryContainer,
+                  ),
+                ),
+                const SizedBox(height: Insets.xs),
+                Text(
+                  'You reported this problem, so you decide whether it is '
+                  'really fixed.',
+                  style: JanMaangTypography.bodySm.copyWith(
+                    color: scheme.onTertiaryContainer,
+                  ),
+                ),
+                const SizedBox(height: Insets.md),
+                FilledButton.icon(
+                  onPressed: () => context.pushNamed(
+                    AppRoute.verify.name,
+                    pathParameters: <String, String>{'id': demand.id},
+                  ),
+                  icon: const Icon(Icons.fact_check_outlined, size: 20),
+                  label: const Text('Verify the repair'),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (demand.photoUrls.isNotEmpty) ...<Widget>[
           const SizedBox(height: Insets.md),
           Text(
@@ -117,22 +178,14 @@ class _Body extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: <Widget>[
-              for (final url in demand.photoUrls)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(Corners.base),
-                  child: Image.network(
-                    url,
-                    width: 220,
-                    height: 160,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const SizedBox(
-                      width: 220,
-                      height: 160,
-                      child: Center(
-                        child: Text('Evidence image could not load.'),
-                      ),
-                    ),
-                  ),
+              for (var i = 0; i < demand.photoUrls.length; i++)
+                _EvidenceThumbnail(
+                  // The thumbnail variant keeps the page light on slow
+                  // connections; tapping opens the full-size photo.
+                  thumbnailUrl: i < demand.photoThumbnailUrls.length
+                      ? demand.photoThumbnailUrls[i]
+                      : demand.photoUrls[i],
+                  fullUrl: demand.photoUrls[i],
                 ),
             ],
           ),
@@ -223,15 +276,18 @@ class _RankingCard extends StatelessWidget {
             ),
             const SizedBox(height: Insets.md),
           ],
-          const SizedBox(height: Insets.xs),
-          OutlinedButton.icon(
-            onPressed: () => context.pushNamed(
-              AppRoute.questionRanking.name,
-              pathParameters: <String, String>{'id': demand.id},
+          // Ranking appeals are not connected to the live API yet.
+          if (AppConfig.useMocks) ...<Widget>[
+            const SizedBox(height: Insets.xs),
+            OutlinedButton.icon(
+              onPressed: () => context.pushNamed(
+                AppRoute.questionRanking.name,
+                pathParameters: <String, String>{'id': demand.id},
+              ),
+              icon: const Icon(Icons.gavel_outlined, size: 18),
+              label: const Text('Question this ranking'),
             ),
-            icon: const Icon(Icons.gavel_outlined, size: 18),
-            label: const Text('Question this ranking'),
-          ),
+          ],
         ],
       ),
     );
@@ -310,6 +366,53 @@ class _TimelineCard extends StatelessWidget {
           else
             JmTimeline(events: demand.timeline),
         ],
+      ),
+    );
+  }
+}
+
+class _EvidenceThumbnail extends StatelessWidget {
+  const _EvidenceThumbnail({required this.thumbnailUrl, required this.fullUrl});
+
+  final String thumbnailUrl;
+  final String fullUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Open report photo',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Corners.base),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (context) => Dialog(
+            child: InteractiveViewer(
+              child: Image.network(
+                fullUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => const Padding(
+                  padding: EdgeInsets.all(Insets.lg),
+                  child: Text('The photo could not load.'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Corners.base),
+          child: Image.network(
+            thumbnailUrl,
+            width: 160,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const SizedBox(
+              width: 160,
+              height: 120,
+              child: Center(child: Text('Photo could not load.')),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -41,8 +41,47 @@ class ApiClient {
     return uri.replace(path: '/api/v1');
   }
 
-  Future<Object?> get(String path, {Map<String, String>? query}) =>
-      _request('GET', path, query: query);
+  Future<void>? _warmUp;
+
+  /// Waits for a sleeping free-tier host to wake before the first real call.
+  ///
+  /// Unauthenticated `GET /health` (outside `/api/v1`), so no token is sent.
+  /// Concurrent callers share one request; a failure is not cached, so the
+  /// next caller tries again.
+  Future<void> warmUp({
+    Duration timeout = const Duration(seconds: 75),
+    int attempts = 2,
+  }) => _warmUp ??= _pingHealth(timeout, attempts).catchError((Object error) {
+    _warmUp = null;
+    throw error;
+  });
+
+  Future<void> _pingHealth(Duration timeout, int attempts) async {
+    final uri = _base.replace(path: '/health');
+    for (var attempt = 1; ; attempt++) {
+      try {
+        final response = await _client
+            .get(uri, headers: const <String, String>{'Accept': 'application/json'})
+            .timeout(timeout);
+        if (response.statusCode >= 200 && response.statusCode < 300) return;
+      } on TimeoutException {
+        // Fall through to the retry or the failure below.
+      } on http.ClientException {
+        // Same: the host may still be starting.
+      }
+      if (attempt >= attempts) {
+        throw const NetworkFailure(
+          'The server is starting up or unreachable. Retry in a minute.',
+        );
+      }
+    }
+  }
+
+  Future<Object?> get(
+    String path, {
+    Map<String, String>? query,
+    Duration? timeout,
+  }) => _request('GET', path, query: query, timeout: timeout);
 
   Future<Object?> post(
     String path,
@@ -56,7 +95,9 @@ class ApiClient {
     Map<String, String>? query,
     Map<String, Object?>? body,
     String? idempotencyKey,
+    Duration? timeout,
   }) async {
+    final limit = timeout ?? const Duration(seconds: 25);
     try {
       final idToken = await token();
       if (idToken == null || idToken.isEmpty) {
@@ -77,8 +118,8 @@ class ApiClient {
       }
       if (body != null) request.body = jsonEncode(body);
       final response = await http.Response.fromStream(
-        await _client.send(request).timeout(const Duration(seconds: 25)),
-      ).timeout(const Duration(seconds: 25));
+        await _client.send(request).timeout(limit),
+      ).timeout(limit);
       if (response.statusCode == 401) {
         throw const AuthFailure(
           'Your session expired. Sign out and sign in again.',

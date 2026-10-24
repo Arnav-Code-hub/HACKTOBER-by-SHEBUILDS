@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { AdminWorkspace } from "@/features/admin/components/admin-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="admin" />;
+  return <AdminWorkspace />;
 }

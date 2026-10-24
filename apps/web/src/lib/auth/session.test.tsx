@@ -7,6 +7,7 @@ const doubles = vi.hoisted(() => ({
   tokenObserver: vi.fn(),
   browserAuth: vi.fn(),
   profile: vi.fn(),
+  wake: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
 }));
@@ -14,13 +15,14 @@ const doubles = vi.hoisted(() => ({
 vi.mock("@/lib/config", () => ({ clientConfiguration: doubles.configuration }));
 vi.mock("@/lib/auth/firebase", () => ({ browserAuth: doubles.browserAuth }));
 vi.mock("firebase/auth", () => ({
-  onIdTokenChanged: doubles.tokenObserver,
+  onAuthStateChanged: doubles.tokenObserver,
   signInWithEmailAndPassword: doubles.signIn,
   signOut: doubles.signOut,
 }));
 vi.mock("@/lib/api/profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api/profile")>()),
   currentProfile: doubles.profile,
+  wakeApi: doubles.wake,
 }));
 
 import { ProfileError, type UserProfile } from "@/lib/api/profile";
@@ -54,6 +56,7 @@ function Probe() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  doubles.wake.mockResolvedValue(undefined);
   doubles.configuration.mockReturnValue({
     firebase: {},
     apiOrigin: "https://api.example.com",
@@ -136,5 +139,70 @@ describe("session trust boundary", () => {
       complete?.(apiProfile);
     });
     expect(screen.getByTestId("session-state").textContent).toBe("signed-out");
+  });
+
+  it("keeps the workspace mounted when Firebase repeats the same user", async () => {
+    doubles.profile.mockResolvedValue(apiProfile);
+    render(
+      <SessionProvider>
+        <Probe />
+      </SessionProvider>,
+    );
+    act(() => observe(firebaseUser));
+    await waitFor(() =>
+      expect(screen.getByTestId("session-state").textContent).toBe(
+        "authenticated:officer",
+      ),
+    );
+    act(() => observe(firebaseUser));
+    expect(screen.getByTestId("session-state").textContent).toBe(
+      "authenticated:officer",
+    );
+    expect(doubles.profile).toHaveBeenCalledTimes(1);
+  });
+
+  it("wakes the API before requesting the profile", async () => {
+    const order: string[] = [];
+    doubles.wake.mockImplementation(async () => {
+      order.push("wake");
+    });
+    doubles.profile.mockImplementation(async () => {
+      order.push("profile");
+      return apiProfile;
+    });
+    render(
+      <SessionProvider>
+        <Probe />
+      </SessionProvider>,
+    );
+    act(() => observe(firebaseUser));
+    await waitFor(() =>
+      expect(screen.getByTestId("session-state").textContent).toBe(
+        "authenticated:officer",
+      ),
+    );
+    expect(order).toEqual(["wake", "profile"]);
+    expect(doubles.wake).toHaveBeenCalledWith(
+      "https://api.example.com",
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("reports a server that does not wake instead of authenticating", async () => {
+    doubles.wake.mockRejectedValue(
+      new ProfileError(
+        "The API is starting up or unreachable. Retry in a minute.",
+      ),
+    );
+    render(
+      <SessionProvider>
+        <Probe />
+      </SessionProvider>,
+    );
+    act(() => observe(firebaseUser));
+    await waitFor(() =>
+      expect(screen.getByTestId("session-state").textContent).toBe("error"),
+    );
+    expect(doubles.profile).not.toHaveBeenCalled();
   });
 });

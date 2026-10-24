@@ -1,5 +1,5 @@
-import { RoleOverview } from "@/components/role-overview";
+import { DepartmentWorkspace } from "@/features/funding/components/department-workspace";
 
 export default function WorkspacePage() {
-  return <RoleOverview workspace="department" />;
+  return <DepartmentWorkspace />;
 }

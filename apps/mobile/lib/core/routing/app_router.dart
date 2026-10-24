@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/domain/app_user.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/otp_screen.dart';
+import '../../features/auth/presentation/session_error_screen.dart';
 import '../../features/demands/presentation/cluster_screen.dart';
 import '../../features/demands/presentation/demand_detail_screen.dart';
 import '../../features/demands/presentation/question_ranking_screen.dart';
@@ -58,8 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = authListenable.value;
 
-      // Hold the current location until the auth stream produces its first value.
-      if (auth.isLoading) return null;
+      // Hold the current location until the auth stream produces its first
+      // value. A reload that still carries an earlier error is not "waiting":
+      // it stays on the session-error screen below.
+      if (auth.isLoading && !auth.hasError) return null;
 
       final location = state.matchedLocation;
 
@@ -77,7 +80,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoute.splash.path;
       }
 
+      // A Firebase session the API could not confirm is shown, not treated
+      // as signed out — otherwise the citizen lands on onboarding with no
+      // explanation.
+      if (auth.hasError) {
+        return location == AppRoute.sessionError.path
+            ? null
+            : AppRoute.sessionError.path;
+      }
+
       final signedIn = auth.value != null;
+      if (location == AppRoute.sessionError.path) {
+        return signedIn ? AppRoute.home.path : AppRoute.onboarding.path;
+      }
       final onAuthRoute =
           location == AppRoute.login.path ||
           location == AppRoute.otp.path ||
@@ -109,6 +124,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const OtpScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: AppRoute.sessionError.path,
+        name: AppRoute.sessionError.name,
+        builder: (context, state) => const SessionErrorScreen(),
       ),
 
       StatefulShellRoute.indexedStack(

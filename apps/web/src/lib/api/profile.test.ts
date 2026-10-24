@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { currentProfile, parseProfile } from "./profile";
+import { currentProfile, parseProfile, ProfileError, wakeApi } from "./profile";
 
 const profile = {
   id: "user-1",
@@ -96,5 +96,33 @@ describe("profile requests", () => {
         new AbortController().signal,
       ),
     ).rejects.toThrow(/valid JSON/);
+  });
+});
+
+describe("API wake-up", () => {
+  it("calls /health once without a token or cookies when the API is awake", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response('{"status":"ok"}', { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+    await wakeApi("https://api.example.com", new AbortController().signal);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.example.com/health");
+    expect(init.credentials).toBe("omit");
+    expect(JSON.stringify(init.headers)).not.toContain("Authorization");
+  });
+
+  it("retries, then fails with a readable error", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response("starting", { status: 503 }));
+    vi.stubGlobal("fetch", fetcher);
+    await expect(
+      wakeApi("https://api.example.com", new AbortController().signal, {
+        pauseMs: 0,
+      }),
+    ).rejects.toBeInstanceOf(ProfileError);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });

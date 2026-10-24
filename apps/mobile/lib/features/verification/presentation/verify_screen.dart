@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/failure.dart';
 import '../../../core/providers.dart';
-import '../../../core/services/media_service.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
 import '../../../shared/models/demand_enums.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
-import '../../../shared/widgets/jm_photo_dropzone.dart';
 import '../../../shared/widgets/jm_states.dart';
+import '../../demands/presentation/demand_providers.dart';
 import '../domain/verification.dart';
 
 final verificationRequestProvider = FutureProvider.autoDispose
@@ -21,9 +19,11 @@ final verificationRequestProvider = FutureProvider.autoDispose
 
 /// Citizen Verification — the Stitch "Closing the Loop" screen.
 ///
-/// Before-and-after side by side, then the binary judgement. This is the step
-/// that makes the whole ledger meaningful: it measures whether public money
-/// actually solved the problem.
+/// The citizen's original photo beside the officer's completion photo, then
+/// the binary judgement. This is the step that makes the whole ledger
+/// meaningful: the person who reported the problem decides whether public
+/// money actually solved it. The photos support that judgement; they are not
+/// proof of a repair.
 class VerifyScreen extends ConsumerStatefulWidget {
   const VerifyScreen({super.key, required this.demandId});
 
@@ -34,14 +34,22 @@ class VerifyScreen extends ConsumerStatefulWidget {
 }
 
 class _VerifyScreenState extends ConsumerState<VerifyScreen> {
-  final List<XFile> _photos = <XFile>[];
+  final _comment = TextEditingController();
   bool _submitting = false;
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final requestAsync = ref.watch(
       verificationRequestProvider(widget.demandId),
     );
+    // Keeps the signed-in user resolved for the verdict buttons.
+    ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: JmAppBar.task(title: 'Verify'),
@@ -89,142 +97,183 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                   FontWeight.w600,
                 ).copyWith(color: scheme.onSurface),
               ),
+              if (request.reportCode != null)
+                TextSpan(text: ' · ${request.reportCode}'),
             ],
           ),
         ),
+        if (request.round > 1) ...<Widget>[
+          const SizedBox(height: Insets.md),
+          _Note(
+            icon: Icons.replay,
+            text:
+                'You said this was not fixed before. The officer has '
+                'submitted new completion evidence (round ${request.round}).',
+          ),
+        ],
         const SizedBox(height: Insets.lg),
 
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Expanded(
-              child: _BeforeColumn(
+              child: _EvidenceColumn(
+                label: 'BEFORE',
                 photoUrl: request.beforePhotoUrl,
-                caption: 'Reported ${request.reportedAgo}',
+                caption: request.reportedAgo.isEmpty
+                    ? 'Your report'
+                    : 'Reported ${request.reportedAgo}',
+                semanticLabel: 'Your original photo of the problem',
               ),
             ),
             const SizedBox(width: Insets.md),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'CURRENT STATUS',
-                    style: JanMaangTypography.labelMd.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: Insets.sm),
-                  SizedBox(
-                    height: 150,
-                    child: JmPhotoDropzone(
-                      onTap: _capture,
-                      title: 'Upload a photo',
-                      subtitle: 'Optional, but helpful for verification.',
-                      height: 150,
-                    ),
-                  ),
-                ],
+              child: _EvidenceColumn(
+                label: 'AFTER',
+                photoUrl: request.afterPhotoUrl,
+                caption: request.afterPhotoUrl == null
+                    ? 'No completion photo'
+                    : 'Officer photo · ${request.completedAgo}',
+                semanticLabel: "The officer's completion photo",
               ),
             ),
           ],
         ),
+        const SizedBox(height: Insets.md),
+        const _Note(
+          icon: Icons.visibility_outlined,
+          text:
+              'These photos help you judge — they do not prove the repair. '
+              'If you can, check the place yourself before answering.',
+        ),
 
-        if (_photos.isNotEmpty) ...<Widget>[
-          const SizedBox(height: Insets.md),
-          JmPhotoDropzone(
-            onTap: _capture,
-            title: 'Add another photo',
-            subtitle: 'Photos are geotagged and timestamped.',
-            height: 90,
-            photos: _photos,
-            onRemove: (i) => setState(() => _photos.removeAt(i)),
+        if (request.evidenceCardUrl != null) ...<Widget>[
+          const SizedBox(height: Insets.lg),
+          Text(
+            'Evidence card',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: Insets.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Corners.lg),
+            child: Image.network(
+              request.evidenceCardUrl!,
+              fit: BoxFit.contain,
+              semanticLabel: 'Before and after evidence card',
+              errorBuilder: (_, _, _) => const Padding(
+                padding: EdgeInsets.all(Insets.md),
+                child: Text('The evidence card could not load.'),
+              ),
+            ),
           ),
         ],
 
         const SizedBox(height: Insets.xl),
-        Text(
-          request.question,
-          style: JanMaangTypography.headlineSm.copyWith(
-            color: scheme.onSurface,
+        if (!request.canVerify)
+          _Note(
+            icon: Icons.info_outline,
+            text:
+                request.blockedReason ??
+                'This repair is not waiting for your verification.',
+          )
+        else ...<Widget>[
+          Text(
+            request.question,
+            style: JanMaangTypography.headlineSm.copyWith(
+              color: scheme.onSurface,
+            ),
           ),
-        ),
-        const SizedBox(height: Insets.md),
-        FilledButton.icon(
-          onPressed: _submitting ? null : () => _submit(isFixed: true),
-          icon: const Icon(Icons.check_circle, size: 20),
-          label: const Text('Yes, it is fixed'),
-          style: FilledButton.styleFrom(
-            backgroundColor: scheme.tertiaryFixed,
-            foregroundColor: scheme.onTertiaryFixed,
+          const SizedBox(height: Insets.md),
+          TextField(
+            controller: _comment,
+            enabled: !_submitting,
+            maxLength: 500,
+            maxLines: 3,
+            minLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'What do you see? (optional)',
+              hintText: 'For example: water flows, but only in the morning.',
+              border: OutlineInputBorder(),
+            ),
           ),
-        ),
-        const SizedBox(height: Insets.md),
-        OutlinedButton.icon(
-          onPressed: _submitting ? null : () => _submit(isFixed: false),
-          icon: Icon(Icons.cancel, size: 20, color: scheme.error),
-          label: Text(
-            'No, still broken',
-            style: JanMaangTypography.labelMd.copyWith(color: scheme.error),
+          const SizedBox(height: Insets.md),
+          FilledButton.icon(
+            onPressed: _submitting
+                ? null
+                : () => _submit(request, isFixed: true),
+            icon: const Icon(Icons.check_circle, size: 20),
+            label: const Text('Yes, it is fixed'),
+            style: FilledButton.styleFrom(
+              backgroundColor: scheme.tertiaryFixed,
+              foregroundColor: scheme.onTertiaryFixed,
+            ),
           ),
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: scheme.error),
-            minimumSize: const Size.fromHeight(52),
+          const SizedBox(height: Insets.md),
+          OutlinedButton.icon(
+            onPressed: _submitting
+                ? null
+                : () => _submit(request, isFixed: false),
+            icon: Icon(Icons.cancel, size: 20, color: scheme.error),
+            label: Text(
+              'No, still broken',
+              style: JanMaangTypography.labelMd.copyWith(color: scheme.error),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: scheme.error),
+              minimumSize: const Size.fromHeight(52),
+            ),
           ),
-        ),
-
-        const SizedBox(height: Insets.lg),
-        JmCard(
-          backgroundColor: scheme.surfaceContainer,
-          borderColor: scheme.outlineVariant,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Icon(Icons.info_outline, size: 18, color: scheme.secondary),
-              const SizedBox(width: Insets.sm),
-              Expanded(
-                child: Text(
-                  'Your verification matters. It helps measure whether public '
-                  'projects actually solve the problem.',
-                  style: JanMaangTypography.bodySm.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: Insets.lg),
+          const _Note(
+            icon: Icons.info_outline,
+            text:
+                'Your verification matters. It helps measure whether public '
+                'projects actually solve the problem.',
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Future<void> _capture() async {
-    try {
-      final photo = await ref
-          .read(mediaServiceProvider)
-          .capturePhoto(existingCount: _photos.length);
-      if (photo != null && mounted) setState(() => _photos.add(photo));
-    } on Failure catch (failure) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(failure.message)));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'The camera is unavailable. Check browser permissions.',
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _submit({required bool isFixed}) async {
+  Future<void> _submit(
+    VerificationRequest request, {
+    required bool isFixed,
+  }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) return;
+    if (user == null) {
+      // Never a silent no-op on a verdict button.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your session has ended. Sign in again to verify.'),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isFixed ? 'Confirm it is fixed?' : 'Report it is still broken?'),
+        content: Text(
+          isFixed
+              ? 'The repair will be marked citizen verified. This is recorded '
+                    'publicly and cannot be changed.'
+              : 'The work will go back to the officer for correction. No new '
+                    'money is allocated.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
 
     setState(() => _submitting = true);
     try {
@@ -235,34 +284,82 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
               demandId: widget.demandId,
               kind: VerificationKind.citizen,
               isFixed: isFixed,
-              photoPaths: _photos.map((photo) => photo.path).toList(),
+              note: _comment.text,
+              workOrderId: request.workOrderId,
+              round: request.round,
             ),
             user.uid,
           );
+      // The saved verdict changes the report's status everywhere it shows.
+      ref
+        ..invalidate(verificationRequestProvider(widget.demandId))
+        ..invalidate(demandProvider(widget.demandId))
+        ..invalidate(myDemandsProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isFixed ? 'Thank you. This project is now citizen-verified.' : 'Recorded. The department has been notified it is unresolved.',
+            isFixed
+                ? 'Thank you. This repair is now citizen verified.'
+                : 'Recorded. The work has been returned to the officer.',
           ),
         ),
       );
       Navigator.of(context).maybePop();
     } on Failure catch (failure) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(failure.message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failure.message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 }
 
-class _BeforeColumn extends StatelessWidget {
-  const _BeforeColumn({required this.photoUrl, required this.caption});
+class _Note extends StatelessWidget {
+  const _Note({required this.icon, required this.text});
 
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return JmCard(
+      backgroundColor: scheme.surfaceContainer,
+      borderColor: scheme.outlineVariant,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, size: 18, color: scheme.secondary),
+          const SizedBox(width: Insets.sm),
+          Expanded(
+            child: Text(
+              text,
+              style: JanMaangTypography.bodySm.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvidenceColumn extends StatelessWidget {
+  const _EvidenceColumn({
+    required this.label,
+    required this.photoUrl,
+    required this.caption,
+    required this.semanticLabel,
+  });
+
+  final String label;
   final String? photoUrl;
   final String caption;
+  final String semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +369,7 @@ class _BeforeColumn extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'BEFORE',
+          label,
           style: JanMaangTypography.labelMd.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -291,7 +388,19 @@ class _BeforeColumn extends StatelessWidget {
               fit: StackFit.expand,
               children: <Widget>[
                 if (photoUrl != null)
-                  Image.network(photoUrl!, fit: BoxFit.cover)
+                  // Contain, not cover: cropping could hide the damage or the
+                  // repair the citizen is judging.
+                  Image.network(
+                    photoUrl!,
+                    fit: BoxFit.contain,
+                    semanticLabel: semanticLabel,
+                    errorBuilder: (_, _, _) => Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
                 else
                   Center(
                     child: Icon(

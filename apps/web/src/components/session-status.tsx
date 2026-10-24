@@ -10,7 +10,7 @@ export function SessionStatus() {
     return (
       <div className="jm-status" role="status">
         <h2>Checking your session</h2>
-        <p>Confirming your identity and API profile…</p>
+        <p>{state.message ?? "Confirming your identity and API profile…"}</p>
       </div>
     );
   }

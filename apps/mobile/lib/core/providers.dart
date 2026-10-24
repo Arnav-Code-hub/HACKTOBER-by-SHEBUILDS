@@ -7,6 +7,7 @@ import 'network/unavailable_repositories.dart';
 import '../features/auth/data/firebase_auth_repository.dart';
 import '../features/demands/data/http_demands_repository.dart';
 import '../features/report/data/http_report_repository.dart';
+import '../features/verification/data/http_verification_repository.dart';
 
 import '../features/auth/data/auth_repository_mock.dart';
 import '../features/auth/domain/app_user.dart';
@@ -70,7 +71,7 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
 final verificationRepositoryProvider = Provider<VerificationRepository>(
   (ref) => AppConfig.useMocks
       ? MockVerificationRepository()
-      : UnavailableVerificationRepository(),
+      : HttpVerificationRepository(ref.watch(apiClientProvider)),
 );
 
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
@@ -82,6 +83,9 @@ final ledgerRepositoryProvider = Provider<LedgerRepository>(
 /// The signed-in citizen, or null. Drives the router's auth redirect.
 final authStateProvider = StreamProvider<AppUser?>(
   (ref) => ref.watch(authRepositoryProvider).authStateChanges(),
+  // No automatic retry: each attempt waits on the API wake-up and profile
+  // call. The session-error screen offers an explicit Retry instead.
+  retry: (_, _) => null,
 );
 
 /// Convenience read of the current user; null while signed out.

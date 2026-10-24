@@ -77,7 +77,9 @@ class JmStatusChip extends StatelessWidget {
         dense: dense,
       ),
       DemandStatus.verified => JmStatusChip(
-        label: 'Under Review',
+        // `verified` is the Panchayat's completed validation, not a review in
+        // progress (docs/api/day1-frontend-contract.md).
+        label: 'Panchayat Validated',
         tone: JmTone.warning,
         icon: Icons.hourglass_top,
         dense: dense,
@@ -107,9 +109,15 @@ class JmStatusChip extends StatelessWidget {
         dense: dense,
       ),
       DemandStatus.citizenVerified => JmStatusChip(
-        label: 'Funded & Fixed',
+        label: 'Citizen Verified',
         tone: JmTone.success,
         icon: Icons.verified,
+        dense: dense,
+      ),
+      DemandStatus.rejected => JmStatusChip(
+        label: 'Not Accepted',
+        tone: JmTone.critical,
+        icon: Icons.block,
         dense: dense,
       ),
     };
