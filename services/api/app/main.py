@@ -16,8 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, get_logger
+from app.integrations.firebase import FirebaseTokenVerifier
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
+from app.modules.auth.service import DatabaseAuthenticator
 from app.modules.departments.router import router as departments_router
 from app.modules.files.router import router as files_router
 from app.modules.funding.router import router as funding_router
@@ -72,6 +74,8 @@ def create_app() -> FastAPI:
         redoc_url=None if settings.is_production else "/redoc",
         openapi_url=f"{API_V1}/openapi.json",
     )
+
+    app.state.authenticator = DatabaseAuthenticator(FirebaseTokenVerifier())
 
     if settings.cors_origins:
         app.add_middleware(

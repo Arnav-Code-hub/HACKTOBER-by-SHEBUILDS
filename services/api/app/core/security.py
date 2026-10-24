@@ -7,11 +7,14 @@ one file.
 """
 
 from dataclasses import dataclass
+from typing import Protocol, cast
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import get_db
 from app.core.roles import Role
 
 _bearer = HTTPBearer(auto_error=False)
@@ -27,16 +30,23 @@ class Principal:
     district_id: UUID | None = None
     department_id: UUID | None = None
     institute_id: UUID | None = None
+    organization_id: UUID | None = None
+    is_demo: bool = False
+
+
+class Authenticator(Protocol):
+    async def resolve(self, token: str, session: AsyncSession) -> Principal: ...
 
 
 async def get_current_principal(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    session: AsyncSession = Depends(get_db, scope="function"),
 ) -> Principal:
     """Verify the bearer token and resolve it to a local user.
 
-    TODO(auth): verify with firebase_admin.auth.verify_id_token, then look the
-    firebase_uid up in the users table. Until the auth module lands this raises,
-    so no endpoint can accidentally ship unauthenticated.
+    The application composition root supplies provider verification and local
+    profile resolution. Core does not import business modules.
     """
     if credentials is None:
         raise HTTPException(
@@ -44,4 +54,5 @@ async def get_current_principal(
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    raise NotImplementedError("Implement in app/modules/auth/service.py")
+    authenticator = cast(Authenticator, request.app.state.authenticator)
+    return await authenticator.resolve(credentials.credentials, session)

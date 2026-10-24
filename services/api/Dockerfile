@@ -2,7 +2,7 @@
 # Multi-stage. `development` has dev deps and source mounted over it by
 # docker-compose.override.yml; `production` is slim and runs as a non-root user.
 #
-# This one image serves BOTH the API and the worker — only the command differs.
+# The prototype runs one API service; the legacy worker is not deployed.
 
 FROM python:3.12-slim AS base
 ENV PYTHONUNBUFFERED=1 \
@@ -20,11 +20,18 @@ WORKDIR /app
 FROM base AS deps
 COPY pyproject.toml uv.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --all-groups
+    --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then \
+      export SSL_CERT_FILE=/run/secrets/build_ca UV_SYSTEM_CERTS=true; \
+    fi; uv sync --frozen --no-install-project --all-groups
 
 FROM deps AS development
 COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --all-groups
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then \
+      export SSL_CERT_FILE=/run/secrets/build_ca UV_SYSTEM_CERTS=true; \
+    fi; uv sync --frozen --all-groups
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
@@ -33,7 +40,10 @@ COPY --from=deps /app/.venv /app/.venv
 # Drop dev dependencies from the production image.
 COPY pyproject.toml uv.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
+    --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then \
+      export SSL_CERT_FILE=/run/secrets/build_ca UV_SYSTEM_CERTS=true; \
+    fi; uv sync --frozen --no-install-project --no-dev
 COPY ./app ./app
 COPY ./seeds ./seeds
 COPY alembic.ini ./
@@ -41,5 +51,5 @@ RUN useradd --create-home --uid 10001 janmaang && chown -R janmaang:janmaang /ap
 USER janmaang
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD curl -fsS http://localhost:8000/health || exit 1
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+  CMD curl -fsS http://localhost:${PORT:-8000}/health || exit 1
+CMD ["python", "-m", "app.start"]

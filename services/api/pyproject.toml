@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "JanMaang API — modular monolith. Owns the schema; the worker shares this image."
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi>=0.121.0",
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.9.0",

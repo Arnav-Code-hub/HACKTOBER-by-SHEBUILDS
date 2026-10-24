@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     environment: Environment = "development"
+    port: int = Field(default=8000, ge=1, le=65535)
     debug: bool = False
     log_level: str = "INFO"
 
@@ -31,12 +32,14 @@ class Settings(BaseSettings):
 
     firebase_project_id: str = ""
     firebase_credentials_path: str = ""
-    firebase_credentials_json: str = ""
+    firebase_credentials_json: SecretStr = SecretStr("")
 
     cloudinary_cloud_name: str = ""
     cloudinary_api_key: str = ""
     cloudinary_api_secret: SecretStr = SecretStr("")
     cloudinary_folder: str = "janmaang"
+    cloudinary_upload_preset: str = ""
+    media_upload_ttl_seconds: int = Field(default=900, ge=60, le=3600)
 
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = ""
@@ -48,6 +51,15 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 60
 
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    @field_validator("cloudinary_folder")
+    @classmethod
+    def _safe_folder(cls, value: str) -> str:
+        import re
+
+        if not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*", value):
+            raise ValueError("CLOUDINARY_FOLDER must be a relative folder without traversal")
+        return value
 
     @field_validator("seed_reset_targets", mode="before")
     @classmethod

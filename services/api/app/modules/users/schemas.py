@@ -1,14 +1,21 @@
-"""Pydantic request/response models for users.
+"""Profile returned to both clients; roles/scopes originate in PostgreSQL."""
 
-Public: these are what generate the OpenAPI spec, and from it the
-TypeScript client and Dart models in packages/contracts.
-"""
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.roles import Role
 
-class UsersBase(BaseModel):
+
+class UserProfile(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
-
-# TODO(users): Create / Update / Read schemas.
+    id: UUID
+    firebase_uid: str
+    role: Role
+    display_name: str
+    email: str
+    district_id: UUID | None
+    department_id: UUID | None
+    institute_id: UUID | None
+    organization_id: UUID | None
+    is_demo: bool

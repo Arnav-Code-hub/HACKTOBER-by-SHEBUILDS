@@ -1,11 +1,26 @@
-"""Business logic for auth. THE PUBLIC FACE of this module.
+"""Verify the provider identity, then resolve permissions from the database."""
 
-Firebase token exchange, session issue and refresh.
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# Module boundary: other modules may import this file and schemas.py.
-# They must NEVER import models.py or repository.py — see the import-linter
-# contract in pyproject.toml. That rule is what makes this module extractable
-# into its own service later without touching a single caller.
-"""
+from app.core.security import Principal
+from app.integrations.firebase import TokenVerifier
+from app.modules.users.service import profile_by_uid
 
-# TODO(auth): service functions.
+
+class DatabaseAuthenticator:
+    def __init__(self, verifier: TokenVerifier) -> None:
+        self.verifier = verifier
+
+    async def resolve(self, token: str, session: AsyncSession) -> Principal:
+        uid = await self.verifier.verify(token)
+        profile = await profile_by_uid(session, uid)
+        return Principal(
+            user_id=profile.id,
+            firebase_uid=profile.firebase_uid,
+            role=profile.role,
+            district_id=profile.district_id,
+            department_id=profile.department_id,
+            institute_id=profile.institute_id,
+            organization_id=profile.organization_id,
+            is_demo=profile.is_demo,
+        )

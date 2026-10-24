@@ -1,6 +1,6 @@
 # Day 1 frontend/backend handoff
 
-Status: proposed integration contract implemented by Developer B's clients. Developer A must implement or explicitly reconcile it before a live integration test. No backend endpoint is claimed to exist yet.
+Status: Phase 2 implements the current-user, media upload and citizen report endpoints below. The later staff/partner endpoints remain planned. Live Firebase/Cloudinary and hosted integration are pending provider setup; local PostgreSQL integration tests use provider doubles.
 
 ## Shared conventions
 

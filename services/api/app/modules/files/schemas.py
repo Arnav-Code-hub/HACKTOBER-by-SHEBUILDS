@@ -1,14 +1,48 @@
-"""Pydantic request/response models for files.
+"""Narrow media DTOs matching the existing web and Dart upload flow."""
 
-Public: these are what generate the OpenAPI spec, and from it the
-TypeScript client and Dart models in packages/contracts.
-"""
+from datetime import datetime
+from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
-
-class FilesBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 
-# TODO(files): Create / Update / Read schemas.
+class UploadRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    filename: str = Field(min_length=1, max_length=255)
+    content_type: Literal["image/jpeg", "image/png", "image/webp"]
+    bytes: StrictInt = Field(gt=0, le=10485760)
+    kind: Literal["report", "completion"]
+
+
+class UploadAuthorization(BaseModel):
+    upload_id: UUID
+    upload_url: str
+    parameters: dict[str, str]
+
+
+class UploadComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    upload_id: UUID
+    public_id: str = Field(min_length=1, max_length=255)
+    version: StrictInt = Field(gt=0)
+    signature: str = Field(pattern=r"^[0-9a-f]{40}$|^[0-9a-f]{64}$")
+
+
+class MediaRead(BaseModel):
+    id: UUID
+    url: str
+    thumbnail_url: str
+
+
+class VerifiedAsset(BaseModel):
+    public_id: str
+    asset_id: str
+    version: int = Field(gt=0)
+    resource_type: Literal["image"]
+    type: Literal["upload"]
+    format: Literal["jpg", "jpeg", "png", "webp"]
+    bytes: int = Field(gt=0, le=10485760)
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    created_at: datetime

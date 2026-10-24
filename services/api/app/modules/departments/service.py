@@ -1,11 +1,46 @@
-"""Business logic for departments. THE PUBLIC FACE of this module.
+"""Public organization-scope validation used during identity resolution."""
 
-Government departments and their officers.
+from uuid import UUID
 
-# Module boundary: other modules may import this file and schemas.py.
-# They must NEVER import models.py or repository.py — see the import-linter
-# contract in pyproject.toml. That rule is what makes this module extractable
-# into its own service later without touching a single caller.
-"""
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# TODO(departments): service functions.
+from app.core.errors import PermissionDeniedError
+from app.modules.departments.models import Organization
+
+
+async def district_name(session: AsyncSession, district_id: UUID) -> str:
+    value = await session.scalar(
+        select(Organization.name).where(
+            Organization.id == district_id,
+            Organization.type == "district",
+            Organization.is_active.is_(True),
+        )
+    )
+    if value is None:
+        raise PermissionDeniedError("Your assigned district is unavailable.")
+    return value
+
+
+async def validate_active_scope(
+    session: AsyncSession,
+    district_id: UUID | None,
+    scopes: dict[str, UUID | None],
+) -> None:
+    expected = {kind: identity for kind, identity in scopes.items() if identity is not None}
+    if district_id is not None:
+        expected["district"] = district_id
+    if not expected:
+        return
+    organizations = (
+        await session.scalars(select(Organization).where(Organization.id.in_(expected.values())))
+    ).all()
+    indexed = {row.id: row for row in organizations}
+    if any(
+        identity not in indexed
+        or not indexed[identity].is_active
+        or indexed[identity].type != kind
+        or (kind != "district" and indexed[identity].parent_id != district_id)
+        for kind, identity in expected.items()
+    ):
+        raise PermissionDeniedError("Your account's organization scope is unavailable.")

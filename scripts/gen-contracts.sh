@@ -13,13 +13,11 @@ cd "$(dirname "$0")/.."
 OUT=packages/contracts/openapi/openapi.json
 
 echo "→ exporting OpenAPI schema from services/api"
-docker compose exec -T api python -c \
-  "import json;from app.main import create_app;print(json.dumps(create_app().openapi(), indent=2))" \
-  > "$OUT"
+uv --directory services/api run python -m app.export_openapi
 
 echo "→ generating TypeScript client"
-pnpm --filter @janmaang/contracts exec openapi-typescript "$OUT" \
-  -o packages/contracts/src/generated/api.ts
+pnpm --dir packages/contracts exec openapi-typescript openapi/openapi.json \
+  -o src/generated/api.ts
 
 echo "→ generating Dart models"
 # TODO(contracts): openapi-generator dart-dio, or a small script into

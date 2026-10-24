@@ -1262,7 +1262,7 @@ requires-dist = [
     { name = "arq", specifier = ">=0.26.1" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "cloudinary", specifier = ">=1.46.3" },
-    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi", specifier = ">=0.121.0" },
     { name = "firebase-admin", specifier = ">=6.6.0" },
     { name = "geoalchemy2", specifier = ">=0.15.2" },
     { name = "google-genai", specifier = ">=2.33.0" },
