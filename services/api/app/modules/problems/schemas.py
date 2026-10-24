@@ -21,7 +21,8 @@ class ReportCreate(BaseModel):
     latitude: Annotated[float, Field(ge=-90, le=90, allow_inf_nan=False)]
     longitude: Annotated[float, Field(ge=-180, le=180, allow_inf_nan=False)]
     location_label: str = Field(min_length=1, max_length=200)
-    channel: Literal["text", "voice"]
+    # How the citizen started the report; provenance only, never a ranking input.
+    channel: Literal["text", "voice", "photo", "location"]
     media_ids: list[UUID] = Field(default_factory=list, max_length=3)
 
     @field_validator("latitude", "longitude", mode="before")

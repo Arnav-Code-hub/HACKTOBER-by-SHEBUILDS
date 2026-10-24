@@ -21,7 +21,6 @@ def score(**overrides: object):
         "gap": None,
         "equity": None,
         "inputs_are_demo": True,
-        "is_demo": False,
     }
     return score_cluster(**(values | overrides))
 
@@ -46,10 +45,14 @@ def test_age_is_bounded_and_uses_fractional_elapsed_days(days: int, expected: in
     assert factors[-1].score == expected
 
 
-def test_official_inputs_and_seed_provenance_are_independent() -> None:
-    total, factors = score(gap=0, equity=100, inputs_are_demo=False, is_demo=True)
+def test_only_default_or_seeded_inputs_are_labelled_demo() -> None:
+    # Official inputs: nothing is a demo value. Support, severity and age are
+    # computed from recorded data and are never labelled demo.
+    total, factors = score(gap=0, equity=100, inputs_are_demo=False)
     assert 0 <= total <= 100
-    assert [factor.is_demo for factor in factors] == [True, False, False, True, True]
+    assert [factor.is_demo for factor in factors] == [False] * 5
+    _, factors = score(gap=40, equity=60, inputs_are_demo=True)
+    assert [factor.is_demo for factor in factors] == [False, True, True, False, False]
     _, factors = score(gap=None, equity=25, inputs_are_demo=False)
     assert factors[1].is_demo and not factors[2].is_demo
 

@@ -67,10 +67,16 @@ skips the record and says how many it could not show.
   "display_name": "Demo Citizen",
   "email": "citizen@example.com",
   "district_id": "district-id",
+  "district_name": "Yadgir",
   "department_id": null,
-  "institute_id": null
+  "institute_id": null,
+  "organization_id": null,
+  "is_demo": true
 }
 ```
+
+`district_name` is the assigned district's display name (`null` for a super
+admin without a district); the citizen app shows it as the account's location.
 
 Roles: `citizen`, `student`, `faculty`, `institute`, `panchayat`, `department`, `officer`, `industry`, `gov_admin`, `super_admin`.
 
@@ -137,6 +143,8 @@ The final report accepts at most three attached media IDs. Allowed formats are J
   "media_ids": ["local-media-id"]
 }
 ```
+
+`channel` records how the citizen started the report and is one of `text`, `voice`, `photo` or `location` (the four entry points on the citizen app's Home screen). It is provenance only, never a ranking input; any other value is 422.
 
 The API derives reporter identity and district from the verified principal and trusted geography. It validates media ownership, count, ranges, text lengths and enums. Category/severity entered by the citizen are provisional suggestions, not trusted ranking inputs. Report creation must work without Gemini success.
 
@@ -236,7 +244,7 @@ access. Writes marked † carry an `Idempotency-Key` header.
 | `POST reports/{id}/validate` | `{"decision":"verify"}` or `{"decision":"reject","reason":"…"}` | `{"id","status"}` |
 | `GET reports/{id}/cluster-suggestions` | — | items `{"id","title","category","distance_m","report_count","supporter_count"}` |
 | `POST reports/{id}/cluster` | `{"cluster_id":"…"}` or `{"new":true}` | `{"id","status"}` |
-| `GET clusters/ranked` | — | items `{"id","title","category","status","rank","priority_score","supporter_count","report_count","anchor_report_code","infrastructure_gap","equity_index","inputs_are_demo","score_breakdown"}` |
+| `GET clusters/ranked` | — | items `{"id","title","category","status","rank","priority_score","supporter_count","report_count","anchor_report_code","infrastructure_gap","equity_index","inputs_are_demo","score_breakdown"}`. **Only `prioritised` clusters** (open demand still waiting for funding) are ranked and listed; funded, in-progress and verified work leaves the ranking. In `score_breakdown`, `is_demo` is true only for a seeded or neutral-default gap/equity input — support, severity and age are computed from recorded data and are never demo values |
 | `POST clusters/{id}/support` | — | `{"id","supporter_count"}` — citizen only, own district. Repeated requests preserve one support row; reporters and explicit supporters are counted once in the same total used by ranking |
 | `PATCH clusters/{id}/inputs` | `{"infrastructure_gap":0-100,"equity_index":0-100}` | `{"id"}` |
 | `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's **district and department** |
@@ -307,8 +315,11 @@ for faculty.
 
 ## Citizen verification (Flutter)
 
-Report detail adds, once ranked, `rank`, `total_ranked`, `priority_score`,
-`supporter_count` and `score_breakdown` (shape above).
+Report detail adds `rank`, `total_ranked`, `priority_score` and
+`score_breakdown` (shape above) only while the report's cluster is
+`prioritised`; once funded they are `null`, and the app explains that the
+problem has left the ranking. `supporter_count` is present for every clustered
+report, before and after funding.
 
 `status_changed_at` (optional, ISO-8601 UTC) is when the report's **current
 effective status** took effect — for a clustered report, when the cluster

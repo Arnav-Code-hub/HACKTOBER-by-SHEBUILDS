@@ -136,3 +136,27 @@ frontends with their live configuration.
 There is no new citizen support button in this phase: the backend endpoint is
 ready, and confirmed citizen report membership already contributes support.
 The full browser journey remains unverified until real accounts are available.
+
+## Audit fixes — 25 October 2026
+
+Applied after the Phase 2/3 audit, before Phase 4 builds on ranking:
+
+- **Report channels.** The citizen app starts reports by `text`, `voice`,
+  `photo` or `location`; the API accepted only the first two, so reports begun
+  from the Home screen's Photo or Location buttons were refused (422). The
+  schema and the database check (migration `0003`) now accept all four.
+- **`district_name` on `GET /users/me`.** The citizen app shows it as the
+  account's location; it was missing.
+- **Revocation checks.** Token signatures are still verified on every request;
+  the account's disabled/revoked state is fetched from Firebase at most once a
+  minute per user instead of on every request. Disabling the JanMaang profile
+  in the database still takes effect immediately.
+- **Only open demand is ranked.** `GET clusters/ranked` and report ranks cover
+  `prioritised` clusters only, so a finished repair can no longer hold a top
+  place or inflate "ranked N of M". Community support stays visible after
+  funding. The citizen app explains that funded problems have left the ranking.
+- **Demo labels.** In score breakdowns only seeded or neutral-default gap and
+  equity inputs are labelled demo values; support, severity and age are
+  computed from recorded data.
+- **District-filtered aggregates.** Cluster summaries filter by district inside
+  each aggregate instead of scanning every district first.

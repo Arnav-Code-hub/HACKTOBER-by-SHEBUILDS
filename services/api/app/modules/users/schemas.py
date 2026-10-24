@@ -19,3 +19,9 @@ class UserProfile(BaseModel):
     institute_id: UUID | None
     organization_id: UUID | None
     is_demo: bool
+
+
+class CurrentUser(UserProfile):
+    """`GET /users/me`: the profile plus its district's display name."""
+
+    district_name: str | None

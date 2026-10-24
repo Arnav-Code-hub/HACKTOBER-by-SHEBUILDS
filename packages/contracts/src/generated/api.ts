@@ -230,6 +230,36 @@ export interface components {
             /** Items */
             items: components["schemas"]["ClusterSuggestion"][];
         };
+        /**
+         * CurrentUser
+         * @description `GET /users/me`: the profile plus its district's display name.
+         */
+        CurrentUser: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Firebase Uid */
+            firebase_uid: string;
+            role: components["schemas"]["Role"];
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** District Id */
+            district_id: string | null;
+            /** Department Id */
+            department_id: string | null;
+            /** Institute Id */
+            institute_id: string | null;
+            /** Organization Id */
+            organization_id: string | null;
+            /** Is Demo */
+            is_demo: boolean;
+            /** District Name */
+            district_name: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -328,7 +358,7 @@ export interface components {
              * Channel
              * @enum {string}
              */
-            channel: "text" | "voice";
+            channel: "text" | "voice" | "photo" | "location";
             /** Media Ids */
             media_ids?: string[];
         };
@@ -498,31 +528,6 @@ export interface components {
              */
             kind: "report" | "completion";
         };
-        /** UserProfile */
-        UserProfile: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Firebase Uid */
-            firebase_uid: string;
-            role: components["schemas"]["Role"];
-            /** Display Name */
-            display_name: string;
-            /** Email */
-            email: string;
-            /** District Id */
-            district_id: string | null;
-            /** Department Id */
-            department_id: string | null;
-            /** Institute Id */
-            institute_id: string | null;
-            /** Organization Id */
-            organization_id: string | null;
-            /** Is Demo */
-            is_demo: boolean;
-        };
         /** ValidateReport */
         ValidateReport: {
             /**
@@ -570,7 +575,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserProfile"];
+                    "application/json": components["schemas"]["CurrentUser"];
                 };
             };
         };

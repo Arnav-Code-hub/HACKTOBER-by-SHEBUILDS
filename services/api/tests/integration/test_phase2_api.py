@@ -75,6 +75,8 @@ async def test_profile_uses_database_role_and_checks_disabled_and_unknown_accoun
         assert profile.status_code == 200, profile.text
         assert profile.json()["role"] == role
         assert profile.json()["id"] == str(user_id(role))
+        expected = None if role == Role.SUPER_ADMIN else "Yadgir (demonstration)"
+        assert profile.json()["district_name"] == expected
     assert (await phase2.client.get("/api/v1/users/me")).status_code == 401
     assert (
         await phase2.client.get("/api/v1/users/me", headers={"Authorization": "Bearer invalid"})
@@ -372,3 +374,28 @@ async def test_invalid_report_body_never_creates_a_record(
     assert response.status_code == 422
     async with phase2.sessions() as session:
         assert await session.scalar(select(func.count()).select_from(Report)) == 3
+
+
+@pytest.mark.parametrize("channel", ["text", "voice", "photo", "location"])
+async def test_every_citizen_app_channel_is_accepted_and_saved(
+    phase2: Phase2, channel: str
+) -> None:
+    response = await phase2.client.post(
+        "/api/v1/reports",
+        headers={**phase2.headers(), "Idempotency-Key": f"channel-{channel}"},
+        json=report_body(channel=channel),
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["channel"] == channel
+    async with phase2.sessions() as session:
+        saved = await session.get(Report, response.json()["id"])
+        assert saved.channel == channel
+
+
+async def test_unknown_channel_is_still_refused(phase2: Phase2) -> None:
+    response = await phase2.client.post(
+        "/api/v1/reports",
+        headers={**phase2.headers(), "Idempotency-Key": "channel-sms"},
+        json=report_body(channel="sms"),
+    )
+    assert response.status_code == 422

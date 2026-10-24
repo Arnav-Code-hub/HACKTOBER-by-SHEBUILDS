@@ -14,9 +14,9 @@ from app.core.security import Principal
 from app.integrations.cloudinary import MediaProvider
 from app.modules.departments.service import department_categories, district_name
 from app.modules.files.service import attach_report_media, report_media
-from app.modules.problems.clusters import ranked_clusters, read_district
+from app.modules.problems.clusters import ranking_view, read_district
 from app.modules.problems.models import Cluster, Report
-from app.modules.problems.schemas import ReportCreate, ReportList, ReportRead
+from app.modules.problems.schemas import RankedCluster, ReportCreate, ReportList, ReportRead
 from app.persistence.audit import SqlAuditWriter
 from app.persistence.idempotency import SqlIdempotencyStore
 from app.shared.enums import ProblemStatus
@@ -80,12 +80,11 @@ async def _read(
         for district_id in {row.Report.district_id for row in rows}
     }
     photos = await report_media(session, [row.Report.id for row in rows], provider)
-    ranking = (
-        await ranked_clusters(session, principal)
-        if any(row.Report.cluster_id for row in rows)
-        else None
-    )
-    ranked = {item.id: item for item in ranking.items} if ranking else {}
+    ranked: dict[UUID, RankedCluster] = {}
+    supporters: dict[UUID, int] = {}
+    if any(row.Report.cluster_id for row in rows):
+        ranking, supporters = await ranking_view(session, principal)
+        ranked = {item.id: item for item in ranking.items}
     result = []
     for row in rows:
         cluster_rank = ranked.get(row.Report.cluster_id)
@@ -122,7 +121,10 @@ async def _read(
                 rank=cluster_rank.rank if cluster_rank else None,
                 total_ranked=len(ranked) if cluster_rank else None,
                 priority_score=cluster_rank.priority_score if cluster_rank else None,
-                supporter_count=cluster_rank.supporter_count if cluster_rank else None,
+                # Support stays visible after funding; rank does not.
+                supporter_count=supporters.get(row.Report.cluster_id)
+                if row.Report.cluster_id
+                else None,
                 score_breakdown=cluster_rank.score_breakdown if cluster_rank else None,
             )
         )

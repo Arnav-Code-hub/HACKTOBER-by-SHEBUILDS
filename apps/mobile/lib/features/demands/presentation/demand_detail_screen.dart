@@ -219,21 +219,29 @@ class _RankingCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     if (demand.scoreBreakdown.isEmpty) {
+      // Only open demand is ranked; funded work leaves the ranking (the API
+      // returns no rank or breakdown for it).
+      final funded =
+          demand.status.isOnLifecycle &&
+          !demand.status.isBefore(DemandStatus.funded);
       return JmCard(
         padding: const EdgeInsets.all(Insets.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Not ranked yet',
+              funded ? 'No longer in the ranking' : 'Not ranked yet',
               style: JanMaangTypography.titleLg.copyWith(
                 color: scheme.onSurface,
               ),
             ),
             const SizedBox(height: Insets.xs),
             Text(
-              'This demand is still being verified and clustered. Ranking '
-              'happens once similar reports are merged.',
+              funded
+                  ? 'This problem has been funded, so it no longer competes '
+                        'for funding in the district ranking.'
+                  : 'This demand is still being verified and clustered. '
+                        'Ranking happens once similar reports are merged.',
               style: JanMaangTypography.bodySm.copyWith(
                 color: scheme.onSurfaceVariant,
               ),

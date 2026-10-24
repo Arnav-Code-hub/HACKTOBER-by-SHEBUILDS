@@ -11,6 +11,11 @@ from app.integrations.cloudinary import CloudinaryMediaProvider
 from app.integrations.firebase import FirebaseTokenVerifier, firebase_app
 
 
+def account(*, disabled: bool = False, valid_after_ms: int | None = None) -> Mock:
+    """A Firebase user record as get_user returns it."""
+    return Mock(disabled=disabled, tokens_valid_after_timestamp=valid_after_ms)
+
+
 @pytest.fixture
 def firebase_config(monkeypatch: pytest.MonkeyPatch):
     import firebase_admin
@@ -35,12 +40,14 @@ async def test_firebase_verifies_in_a_thread_with_revocation_check(
 
     def verify(token, **kwargs):
         calls.append((threading.get_ident(), token, kwargs))
-        return {"uid": "firebase-uid", "role": "super_admin"}
+        return {"uid": "firebase-uid", "role": "super_admin", "iat": 2000}
 
     monkeypatch.setattr(auth, "verify_id_token", verify)
+    monkeypatch.setattr(auth, "get_user", lambda uid, app: account())
     assert await FirebaseTokenVerifier().verify("opaque-token") == "firebase-uid"
     assert calls[0][0] != event_loop_thread
-    assert calls[0][2] == {"app": application, "check_revoked": True}
+    # Signature checked locally; revocation from the cached account state.
+    assert calls[0][2] == {"app": application, "check_revoked": False}
 
 
 async def test_firebase_invalid_token_is_401_and_provider_failure_is_503(
@@ -81,7 +88,10 @@ async def test_firebase_initializes_once_under_concurrent_requests(
 
     monkeypatch.setattr(firebase_admin, "get_app", get_app)
     monkeypatch.setattr(firebase_admin, "initialize_app", initialize)
-    monkeypatch.setattr(auth, "verify_id_token", lambda *args, **kwargs: {"uid": "uid"})
+    monkeypatch.setattr(
+        auth, "verify_id_token", lambda *args, **kwargs: {"uid": "uid", "iat": 2000}
+    )
+    monkeypatch.setattr(auth, "get_user", lambda uid, app: account())
     assert (
         await asyncio.gather(*[FirebaseTokenVerifier().verify("token") for _ in range(4)])
         == ["uid"] * 4
@@ -125,3 +135,71 @@ def test_cloudinary_signing_response_validation_and_bounded_delivery_urls() -> N
 def test_unconfigured_cloudinary_fails_explicitly() -> None:
     with pytest.raises(ServiceUnavailableError):
         CloudinaryMediaProvider(Settings(_env_file=None)).authorize("asset", 123)
+
+
+async def test_account_state_is_checked_once_per_user_within_the_ttl(
+    firebase_config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth, _ = firebase_config
+    now = [100.0]
+    lookups = []
+    monkeypatch.setattr(
+        auth, "verify_id_token", lambda token, **kwargs: {"uid": token, "iat": 2000}
+    )
+    monkeypatch.setattr(auth, "get_user", lambda uid, app: lookups.append(uid) or account())
+    verifier = FirebaseTokenVerifier(revocation_ttl_seconds=60, clock=lambda: now[0])
+
+    for _ in range(3):
+        assert await verifier.verify("citizen") == "citizen"
+    assert await verifier.verify("officer") == "officer"
+    assert lookups == ["citizen", "officer"]
+
+    now[0] += 61
+    await verifier.verify("citizen")
+    assert lookups == ["citizen", "officer", "citizen"]
+
+
+@pytest.mark.parametrize(
+    ("state", "detail"),
+    [
+        (account(disabled=True), "disabled"),
+        # Revoked after this token was issued (iat 2000 s < 3000 s).
+        (account(valid_after_ms=3_000_000), "revoked"),
+    ],
+)
+async def test_disabled_or_revoked_accounts_are_refused(
+    firebase_config, monkeypatch: pytest.MonkeyPatch, state: Mock, detail: str
+) -> None:
+    auth, _ = firebase_config
+    monkeypatch.setattr(auth, "verify_id_token", lambda *a, **k: {"uid": "u", "iat": 2000})
+    monkeypatch.setattr(auth, "get_user", lambda uid, app: state)
+    with pytest.raises(HTTPException) as refused:
+        await FirebaseTokenVerifier().verify("token")
+    assert refused.value.status_code == 401
+    assert detail in str(refused.value.detail)
+
+
+async def test_a_token_issued_after_revocation_is_accepted(
+    firebase_config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth, _ = firebase_config
+    monkeypatch.setattr(auth, "verify_id_token", lambda *a, **k: {"uid": "u", "iat": 4000})
+    monkeypatch.setattr(auth, "get_user", lambda uid, app: account(valid_after_ms=3_000_000))
+    assert await FirebaseTokenVerifier().verify("token") == "u"
+
+
+async def test_account_lookup_failures_are_mapped(
+    firebase_config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    auth, _ = firebase_config
+    monkeypatch.setattr(auth, "verify_id_token", lambda *a, **k: {"uid": "u", "iat": 2000})
+    monkeypatch.setattr(
+        auth, "get_user", Mock(side_effect=auth.UserNotFoundError("deleted account"))
+    )
+    with pytest.raises(HTTPException) as missing:
+        await FirebaseTokenVerifier().verify("token")
+    assert missing.value.status_code == 401
+
+    monkeypatch.setattr(auth, "get_user", Mock(side_effect=RuntimeError("network down")))
+    with pytest.raises(ServiceUnavailableError):
+        await FirebaseTokenVerifier().verify("token")

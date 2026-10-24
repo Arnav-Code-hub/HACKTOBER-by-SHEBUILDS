@@ -18,6 +18,7 @@ from tests.integration.test_phase2_api import report_body
 pytestmark = pytest.mark.integration
 REPORTED = seed_id("report/reported")
 PRIORITISED = seed_id("cluster/prioritised")
+IN_PROGRESS = seed_id("cluster/in_progress")
 DISTRICT = seed_id("district/yadgir")
 
 
@@ -58,7 +59,8 @@ async def test_panchayat_queue_to_cluster_and_citizen_read_share_effective_statu
     detail = await phase2.client.get(f"/api/v1/reports/{REPORTED}", headers=phase2.headers())
     saved = detail.json()
     assert saved["status"] == "prioritised" and saved["status_changed_at"]
-    assert saved["rank"] >= 1 and saved["total_ranked"] == 3
+    # Only prioritised clusters are ranked: the new one and the seeded one.
+    assert saved["rank"] >= 1 and saved["total_ranked"] == 2
     assert saved["supporter_count"] == 1 and len(saved["score_breakdown"]) == 5
     queue = await phase2.client.get(
         "/api/v1/reports?status=verified", headers=phase2.headers(Role.PANCHAYAT)
@@ -300,7 +302,14 @@ async def test_ranking_uses_highest_validated_member_severity_and_honest_default
 
 async def test_ties_use_older_anchor_then_cluster_uuid(phase2: Phase2) -> None:
     # All anchors are over 90 days old so age scores saturate and totals tie.
+    # Only prioritised clusters are ranked, so make the second seeded cluster
+    # rankable to exercise the tie-break between two open demands.
     async with phase2.sessions.begin() as session:
+        await session.execute(
+            update(Cluster)
+            .where(Cluster.id == seed_id("cluster/in_progress"))
+            .values(status="prioritised")
+        )
         await session.execute(
             update(Report).values(created_at=datetime.now(UTC) - timedelta(days=100))
         )
@@ -422,8 +431,10 @@ async def test_district_and_department_boundaries_hide_reports_and_clusters(phas
         )
         == 0
     )
-    assert len(await ranking(phase2)) == 2
-    assert len(await ranking(phase2, Role.SUPER_ADMIN)) == 3
+    # Yadgir ranks its one open cluster; platform oversight also sees the
+    # other district's (in_progress Yadgir work is not ranked at all).
+    assert len(await ranking(phase2)) == 1
+    assert len(await ranking(phase2, Role.SUPER_ADMIN)) == 2
     assert (
         await phase2.client.get(
             f"/api/v1/reports/{foreign_report}", headers=phase2.headers(Role.PANCHAYAT)
@@ -502,3 +513,23 @@ async def test_only_panchayat_validates_and_only_citizens_support(phase2: Phase2
             headers=phase2.headers(**{"Idempotency-Key": "phase3-create"}),
         )
     ).status_code == 201
+
+
+async def test_only_open_demand_is_ranked_but_support_stays_visible(phase2: Phase2) -> None:
+    items = await ranking(phase2)
+    assert [item["id"] for item in items] == [str(PRIORITISED)]
+    assert [item["rank"] for item in items] == [1]
+    assert all(item["status"] == "prioritised" for item in items)
+
+    # A report whose cluster is being repaired is no longer ranked, but its
+    # community support is still reported.
+    detail = await phase2.client.get(
+        f"/api/v1/reports/{seed_id('report/in_progress')}", headers=phase2.headers()
+    )
+    assert detail.status_code == 200, detail.text
+    saved = detail.json()
+    assert saved["status"] == "in_progress"
+    assert saved["rank"] is None and saved["total_ranked"] is None
+    assert saved["priority_score"] is None and saved["score_breakdown"] is None
+    assert saved["supporter_count"] >= 1
+    assert str(IN_PROGRESS) not in {item["id"] for item in items}

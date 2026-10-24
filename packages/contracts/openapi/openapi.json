@@ -19,7 +19,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
+                  "$ref": "#/components/schemas/CurrentUser"
                 }
               }
             }
@@ -726,6 +726,109 @@
         ],
         "title": "ClusterSuggestions"
       },
+      "CurrentUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "firebase_uid": {
+            "type": "string",
+            "title": "Firebase Uid"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "district_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District Id"
+          },
+          "department_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Id"
+          },
+          "institute_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institute Id"
+          },
+          "organization_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Id"
+          },
+          "is_demo": {
+            "type": "boolean",
+            "title": "Is Demo"
+          },
+          "district_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "firebase_uid",
+          "role",
+          "display_name",
+          "email",
+          "district_id",
+          "department_id",
+          "institute_id",
+          "organization_id",
+          "is_demo",
+          "district_name"
+        ],
+        "title": "CurrentUser",
+        "description": "`GET /users/me`: the profile plus its district's display name."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -963,7 +1066,9 @@
             "type": "string",
             "enum": [
               "text",
-              "voice"
+              "voice",
+              "photo",
+              "location"
             ],
             "title": "Channel"
           },
@@ -1410,96 +1515,6 @@
           "kind"
         ],
         "title": "UploadRequest"
-      },
-      "UserProfile": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "firebase_uid": {
-            "type": "string",
-            "title": "Firebase Uid"
-          },
-          "role": {
-            "$ref": "#/components/schemas/Role"
-          },
-          "display_name": {
-            "type": "string",
-            "title": "Display Name"
-          },
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "district_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "District Id"
-          },
-          "department_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Department Id"
-          },
-          "institute_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Institute Id"
-          },
-          "organization_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Id"
-          },
-          "is_demo": {
-            "type": "boolean",
-            "title": "Is Demo"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "firebase_uid",
-          "role",
-          "display_name",
-          "email",
-          "district_id",
-          "department_id",
-          "institute_id",
-          "organization_id",
-          "is_demo"
-        ],
-        "title": "UserProfile"
       },
       "ValidateReport": {
         "properties": {

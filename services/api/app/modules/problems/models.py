@@ -31,7 +31,7 @@ class Report(UUIDMixin, TimestampMixin, DemoMixin, Base):
         CheckConstraint("severity IN ('low','medium','high','critical')", name="severity"),
         CheckConstraint("latitude BETWEEN -90 AND 90", name="latitude"),
         CheckConstraint("longitude BETWEEN -180 AND 180", name="longitude"),
-        CheckConstraint("channel IN ('text','voice')", name="channel"),
+        CheckConstraint("channel IN ('text','voice','photo','location')", name="channel"),
         CheckConstraint(
             "status <> 'rejected' OR (rejection_reason IS NOT NULL "
             "AND length(trim(rejection_reason)) > 0)",

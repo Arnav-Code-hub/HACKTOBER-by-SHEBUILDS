@@ -126,11 +126,23 @@ async def suggestions(
     return ClusterSuggestions(items=items)
 
 
-async def ranked_clusters(session: AsyncSession, principal: Principal) -> RankedClusters:
+async def ranking_view(
+    session: AsyncSession, principal: Principal
+) -> tuple[RankedClusters, dict[UUID, int]]:
+    """The ranked list plus community support for every cluster in scope.
+
+    Only `prioritised` clusters — open demand still waiting for funding — are
+    ranked. Funded, in-progress and verified work leaves the ranking, so a
+    finished repair cannot hold a top place or inflate "ranked N of M".
+    """
+    rows = await _snapshots(session, principal)
+    supporters = {row.cluster.id: row.supporter_count for row in rows}
     now = datetime.now(UTC)
     scored = []
-    for row in await _snapshots(session, principal):
+    for row in rows:
         cluster = row.cluster
+        if cluster.status != Status.PRIORITISED:
+            continue
         score, breakdown = score_cluster(
             supporters=row.supporter_count,
             severity=row.severity,
@@ -139,11 +151,10 @@ async def ranked_clusters(session: AsyncSession, principal: Principal) -> Ranked
             gap=cluster.infrastructure_gap,
             equity=cluster.equity_index,
             inputs_are_demo=cluster.inputs_are_demo,
-            is_demo=cluster.is_demo,
         )
         scored.append((score, row, breakdown))
     scored.sort(key=lambda item: (-item[0], item[1].anchor.created_at, item[1].cluster.id))
-    return RankedClusters(
+    ranked = RankedClusters(
         items=[
             RankedCluster(
                 id=row.cluster.id,
@@ -169,6 +180,12 @@ async def ranked_clusters(session: AsyncSession, principal: Principal) -> Ranked
             for rank, (score, row, breakdown) in enumerate(scored, 1)
         ]
     )
+    return ranked, supporters
+
+
+async def ranked_clusters(session: AsyncSession, principal: Principal) -> RankedClusters:
+    ranked, _ = await ranking_view(session, principal)
+    return ranked
 
 
 async def update_inputs(

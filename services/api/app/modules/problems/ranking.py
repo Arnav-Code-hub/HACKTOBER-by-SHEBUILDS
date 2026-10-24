@@ -17,8 +17,12 @@ def score_cluster(
     gap: float | None,
     equity: float | None,
     inputs_are_demo: bool,
-    is_demo: bool,
 ) -> tuple[float, list[ScoreFactor]]:
+    """`is_demo` marks only seeded or neutral-default *inputs* (gap, equity).
+
+    Support, severity and age are computed from recorded data, so they are
+    never labelled demo values, even when the records belong to the demo.
+    """
     age_days = max(0.0, (now - anchor_created_at).total_seconds() / 86400)
     factors = [
         ScoreFactor(
@@ -26,7 +30,7 @@ def score_cluster(
             label="Community support",
             score=-100 * expm1(-supporters / 60),
             weight=0.30,
-            is_demo=is_demo,
+            is_demo=False,
         ),
         ScoreFactor(
             factor="gap",
@@ -47,14 +51,14 @@ def score_cluster(
             label="Severity",
             score=severity,
             weight=0.18,
-            is_demo=is_demo,
+            is_demo=False,
         ),
         ScoreFactor(
             factor="age",
             label="Age",
             score=min(100, age_days / 90 * 100),
             weight=0.10,
-            is_demo=is_demo,
+            is_demo=False,
         ),
     ]
     return sum(factor.score * factor.weight for factor in factors), factors
