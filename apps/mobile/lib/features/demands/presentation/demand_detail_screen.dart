@@ -44,8 +44,7 @@ class DemandDetailScreen extends ConsumerWidget {
         data: (demand) => _Body(
           demand: demand,
           // Only the original reporter is asked; the API enforces it too.
-          canVerify:
-              demand.awaitingVerification && demand.reporterId == userId,
+          canVerify: demand.awaitingVerification && demand.reporterId == userId,
         ),
       ),
     );

@@ -34,13 +34,12 @@ Map<String, Object?> verificationJson() => <String, Object?>{
   'card_url': 'https://res.cloudinary.com/d/card.jpg',
 };
 
-ApiClient apiReturning(
-  http.Response Function(http.Request request) handler,
-) => ApiClient(
-  baseUrl: 'https://api.example.test',
-  token: () async => 'token',
-  client: MockClient((request) async => handler(request)),
-);
+ApiClient apiReturning(http.Response Function(http.Request request) handler) =>
+    ApiClient(
+      baseUrl: 'https://api.example.test',
+      token: () async => 'token',
+      client: MockClient((request) async => handler(request)),
+    );
 
 void main() {
   group('verification view mapping', () {

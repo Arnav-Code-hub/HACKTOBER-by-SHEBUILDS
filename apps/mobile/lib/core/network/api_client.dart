@@ -61,7 +61,10 @@ class ApiClient {
     for (var attempt = 1; ; attempt++) {
       try {
         final response = await _client
-            .get(uri, headers: const <String, String>{'Accept': 'application/json'})
+            .get(
+              uri,
+              headers: const <String, String>{'Accept': 'application/json'},
+            )
             .timeout(timeout);
         if (response.statusCode >= 200 && response.statusCode < 300) return;
       } on TimeoutException {

@@ -41,8 +41,7 @@ extension JsonFields on Map<String, dynamic> {
     _invalid(key);
   }
 
-  DateTime requiredDate(String key) =>
-      optionalDate(key) ?? _invalid(key);
+  DateTime requiredDate(String key) => optionalDate(key) ?? _invalid(key);
 
   /// An ISO-8601 timestamp; a malformed string is invalid, not absent.
   DateTime? optionalDate(String key) {
@@ -59,6 +58,5 @@ extension JsonFields on Map<String, dynamic> {
     _invalid(key);
   }
 
-  String requiredHttpsUrl(String key) =>
-      optionalHttpsUrl(key) ?? _invalid(key);
+  String requiredHttpsUrl(String key) => optionalHttpsUrl(key) ?? _invalid(key);
 }

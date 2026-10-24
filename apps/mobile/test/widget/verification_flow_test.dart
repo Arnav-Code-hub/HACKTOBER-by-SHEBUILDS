@@ -95,36 +95,40 @@ Demand demand({required String reporterId, required bool awaiting}) => Demand(
 );
 
 void main() {
-  testWidgets('shows before and after evidence, then records a confirmed verdict', (
-    tester,
-  ) async {
-    final repository = FakeVerificationRepository(openRequest);
-    await pumpScreen(tester, const VerifyScreen(demandId: 'r1'), <Override>[
-      verificationRepositoryProvider.overrideWithValue(repository),
-    ]);
+  testWidgets(
+    'shows before and after evidence, then records a confirmed verdict',
+    (tester) async {
+      final repository = FakeVerificationRepository(openRequest);
+      await pumpScreen(tester, const VerifyScreen(demandId: 'r1'), <Override>[
+        verificationRepositoryProvider.overrideWithValue(repository),
+      ]);
 
-    expect(find.text('BEFORE'), findsOneWidget);
-    expect(find.text('AFTER'), findsOneWidget);
-    expect(find.text('Officer photo · 1d ago'), findsOneWidget);
-    expect(find.textContaining('they do not prove the repair'), findsOneWidget);
-    expect(find.text('Evidence card'), findsOneWidget);
-    expect(find.textContaining('round 2'), findsOneWidget);
+      expect(find.text('BEFORE'), findsOneWidget);
+      expect(find.text('AFTER'), findsOneWidget);
+      expect(find.text('Officer photo · 1d ago'), findsOneWidget);
+      expect(
+        find.textContaining('they do not prove the repair'),
+        findsOneWidget,
+      );
+      expect(find.text('Evidence card'), findsOneWidget);
+      expect(find.textContaining('round 2'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'Dry again by evening.');
-    await tester.ensureVisible(find.text('No, still broken'));
-    await tester.tap(find.text('No, still broken'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('No new money is allocated'), findsOneWidget);
-    expect(repository.submitted, isEmpty);
+      await tester.enterText(find.byType(TextField), 'Dry again by evening.');
+      await tester.ensureVisible(find.text('No, still broken'));
+      await tester.tap(find.text('No, still broken'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('No new money is allocated'), findsOneWidget);
+      expect(repository.submitted, isEmpty);
 
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
-    final [verdict] = repository.submitted;
-    expect(verdict.isFixed, isFalse);
-    expect(verdict.workOrderId, 'w1');
-    expect(verdict.round, 2);
-    expect(verdict.note, 'Dry again by evening.');
-  });
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+      final [verdict] = repository.submitted;
+      expect(verdict.isFixed, isFalse);
+      expect(verdict.workOrderId, 'w1');
+      expect(verdict.round, 2);
+      expect(verdict.note, 'Dry again by evening.');
+    },
+  );
 
   testWidgets('a stale round explains itself and reloads the latest evidence', (
     tester,
@@ -190,21 +194,33 @@ void main() {
     expect(find.text('No, still broken'), findsNothing);
   });
 
-  testWidgets('the report page asks only its reporter to verify', (tester) async {
-    await pumpScreen(tester, const DemandDetailScreen(demandId: 'r1'), <Override>[
-      demandProvider.overrideWith(
-        (ref, id) async => demand(reporterId: 'local-user', awaiting: true),
-      ),
-    ]);
+  testWidgets('the report page asks only its reporter to verify', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      const DemandDetailScreen(demandId: 'r1'),
+      <Override>[
+        demandProvider.overrideWith(
+          (ref, id) async => demand(reporterId: 'local-user', awaiting: true),
+        ),
+      ],
+    );
     expect(find.text('Verify the repair'), findsOneWidget);
   });
 
-  testWidgets('another citizen viewing the report is not asked', (tester) async {
-    await pumpScreen(tester, const DemandDetailScreen(demandId: 'r1'), <Override>[
-      demandProvider.overrideWith(
-        (ref, id) async => demand(reporterId: 'someone-else', awaiting: true),
-      ),
-    ]);
+  testWidgets('another citizen viewing the report is not asked', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      const DemandDetailScreen(demandId: 'r1'),
+      <Override>[
+        demandProvider.overrideWith(
+          (ref, id) async => demand(reporterId: 'someone-else', awaiting: true),
+        ),
+      ],
+    );
     expect(find.text('Verify the repair'), findsNothing);
   });
 }

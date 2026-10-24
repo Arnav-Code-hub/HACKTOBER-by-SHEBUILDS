@@ -17,6 +17,18 @@ description = "Firebase / GCP service account private key"
 regex = '''"type"\s*:\s*"service_account"'''
 tags = ["key", "gcp"]
 
+# The generic detector mistakes this public deterministic seed identifier for
+# an API key. Match both its exact value and its source path, including history.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public organization seed lookup identifier"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^services/api/app/seeds/data\.py$''']
+regexes = ['''^district/boundary$''']
+
 [allowlist]
 description = "Placeholders, fixtures and generated lockfiles"
 paths = [

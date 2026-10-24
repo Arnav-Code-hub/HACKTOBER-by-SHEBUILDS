@@ -20,7 +20,10 @@ void main() {
     test('rejection sits outside the lifecycle order', () {
       expect(DemandStatus.rejected.isOnLifecycle, isFalse);
       expect(DemandStatus.rejected.stage, isNull);
-      expect(DemandStatus.citizenVerified.isBefore(DemandStatus.rejected), isFalse);
+      expect(
+        DemandStatus.citizenVerified.isBefore(DemandStatus.rejected),
+        isFalse,
+      );
       expect(DemandStatus.rejected.isBefore(DemandStatus.reported), isFalse);
       expect(DemandStatus.reported.stage, 0);
     });

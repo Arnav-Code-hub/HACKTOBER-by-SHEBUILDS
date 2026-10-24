@@ -71,25 +71,28 @@ Map<String, Object?> profile(String role) => <String, Object?>{
 
 void main() {
   group('ApiClient.warmUp', () {
-    test('sends one unauthenticated /health request for concurrent callers', () async {
-      var healthCalls = 0;
-      final api = ApiClient(
-        baseUrl: 'https://api.example.test',
-        token: () async => 'secret-token',
-        client: MockClient((request) async {
-          expect(request.url.toString(), 'https://api.example.test/health');
-          expect(request.headers.containsKey('Authorization'), isFalse);
-          healthCalls++;
-          return http.Response('{"status":"ok"}', 200);
-        }),
-      );
+    test(
+      'sends one unauthenticated /health request for concurrent callers',
+      () async {
+        var healthCalls = 0;
+        final api = ApiClient(
+          baseUrl: 'https://api.example.test',
+          token: () async => 'secret-token',
+          client: MockClient((request) async {
+            expect(request.url.toString(), 'https://api.example.test/health');
+            expect(request.headers.containsKey('Authorization'), isFalse);
+            healthCalls++;
+            return http.Response('{"status":"ok"}', 200);
+          }),
+        );
 
-      await Future.wait(<Future<void>>[api.warmUp(), api.warmUp()]);
-      await api.warmUp();
+        await Future.wait(<Future<void>>[api.warmUp(), api.warmUp()]);
+        await api.warmUp();
 
-      expect(healthCalls, 1);
-      api.close();
-    });
+        expect(healthCalls, 1);
+        api.close();
+      },
+    );
 
     test('retries, then fails visibly without caching the failure', () async {
       var healthCalls = 0;
@@ -184,10 +187,7 @@ void main() {
       expect(setup.auth.signOuts, 1);
       expect(emitted.whereType<Failure>(), isEmpty);
       // The sign-in and the auth listener share one profile request.
-      expect(
-        setup.paths.where((p) => p == '/api/v1/users/me').length,
-        1,
-      );
+      expect(setup.paths.where((p) => p == '/api/v1/users/me').length, 1);
       await subscription.cancel();
     });
   });

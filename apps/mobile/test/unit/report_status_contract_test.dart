@@ -133,38 +133,41 @@ void main() {
     }
   });
 
-  test('my reports keeps readable records and counts unreadable ones', () async {
-    final bad = <Object?>[
-      reportJson()
-        ..['id'] = 'report-2'
-        ..['status'] = 'invented',
-      'not even an object',
-      for (final build in malformed.values) build()..['id'] = 'bad',
-    ];
-    final api = ApiClient(
-      baseUrl: 'https://api.example.test',
-      token: () async => 'token',
-      client: MockClient(
-        (request) async => http.Response(
-          jsonEncode(<String, Object?>{
-            'items': <Object?>[
-              reportJson(),
-              ...bad,
-              reportJson()..['id'] = 'report-3',
-            ],
-          }),
-          200,
+  test(
+    'my reports keeps readable records and counts unreadable ones',
+    () async {
+      final bad = <Object?>[
+        reportJson()
+          ..['id'] = 'report-2'
+          ..['status'] = 'invented',
+        'not even an object',
+        for (final build in malformed.values) build()..['id'] = 'bad',
+      ];
+      final api = ApiClient(
+        baseUrl: 'https://api.example.test',
+        token: () async => 'token',
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode(<String, Object?>{
+              'items': <Object?>[
+                reportJson(),
+                ...bad,
+                reportJson()..['id'] = 'report-3',
+              ],
+            }),
+            200,
+          ),
         ),
-      ),
-    );
-    final repository = HttpDemandsRepository(api);
+      );
+      final repository = HttpDemandsRepository(api);
 
-    final reports = await repository.watchMyDemands('local-user').first;
+      final reports = await repository.watchMyDemands('local-user').first;
 
-    expect(reports.map((d) => d.id), <String>['report-1', 'report-3']);
-    expect(repository.unreadableInLastLoad, bad.length);
-    api.close();
-  });
+      expect(reports.map((d) => d.id), <String>['report-1', 'report-3']);
+      expect(repository.unreadableInLastLoad, bad.length);
+      api.close();
+    },
+  );
 
   group('timeline dates are never invented', () {
     test('the current status is dated by status_changed_at', () {

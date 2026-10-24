@@ -149,10 +149,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
         if (request.evidenceCardUrl != null) ...<Widget>[
           const SizedBox(height: Insets.lg),
-          Text(
-            'Evidence card',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Evidence card', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: Insets.sm),
           ClipRRect(
             borderRadius: BorderRadius.circular(Corners.lg),
@@ -253,7 +250,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isFixed ? 'Confirm it is fixed?' : 'Report it is still broken?'),
+        title: Text(
+          isFixed ? 'Confirm it is fixed?' : 'Report it is still broken?',
+        ),
         content: Text(
           isFixed
               ? 'The repair will be marked citizen verified. This is recorded '
@@ -316,17 +315,15 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
           duration: const Duration(seconds: 10),
           action: SnackBarAction(
             label: 'Reload',
-            onPressed: () => ref.invalidate(
-              verificationRequestProvider(widget.demandId),
-            ),
+            onPressed: () =>
+                ref.invalidate(verificationRequestProvider(widget.demandId)),
           ),
         ),
       );
     } on Failure catch (failure) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failure.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failure.message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
