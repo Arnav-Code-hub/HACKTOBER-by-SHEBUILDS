@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'config/app_config.dart';
 import 'network/api_client.dart';
-import 'network/unavailable_repositories.dart';
 import '../features/auth/data/firebase_auth_repository.dart';
 import '../features/demands/data/http_demands_repository.dart';
 import '../features/report/data/http_report_repository.dart';
@@ -21,8 +20,8 @@ import '../features/report/domain/report_repository.dart';
 import '../features/verification/data/verification_repository_mock.dart';
 import '../features/verification/domain/verification_repository.dart';
 
-/// Composition root. The compile-time mode selects labelled demo stores or
-/// Firebase Auth + authenticated HTTP. Unfinished live features fail explicitly.
+/// Auth and reporting use the selected mode. Community previews have a separate
+/// demo store so browsing examples never replaces a citizen's live records.
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(
@@ -45,13 +44,17 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return repository;
 });
 
+final demoDemandsRepositoryProvider = Provider<MockDemandsRepository>((ref) {
+  final repository = MockDemandsRepository();
+  ref.onDispose(repository.dispose);
+  return repository;
+});
+
 final demandsRepositoryProvider = Provider<DemandsRepository>((ref) {
   if (!AppConfig.useMocks) {
     return HttpDemandsRepository(ref.watch(apiClientProvider));
   }
-  final repository = MockDemandsRepository();
-  ref.onDispose(repository.dispose);
-  return repository;
+  return ref.watch(demoDemandsRepositoryProvider);
 });
 
 final reportRepositoryProvider = Provider<ReportRepository>((ref) {
@@ -75,9 +78,7 @@ final verificationRepositoryProvider = Provider<VerificationRepository>(
 );
 
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
-  (ref) => AppConfig.useMocks
-      ? MockLedgerRepository()
-      : UnavailableLedgerRepository(),
+  (ref) => MockLedgerRepository(),
 );
 
 /// The signed-in citizen, or null. Drives the router's auth redirect.

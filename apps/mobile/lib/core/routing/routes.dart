@@ -12,6 +12,7 @@ enum AppRoute {
   leaderboard('/leaderboard'),
   ledger('/ledger'),
   demandDetail('/demand/:id'),
+  demoDemandDetail('/demo/demand/:id'),
   cluster('/cluster/:id'),
   questionRanking('/demand/:id/question'),
   verify('/verify/:id'),

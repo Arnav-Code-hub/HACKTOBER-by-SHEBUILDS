@@ -8,6 +8,7 @@ import '../../../core/theme/motion.dart';
 import '../../../shared/models/provenance.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
+import '../../../shared/widgets/jm_demo_notice.dart';
 import '../../../shared/widgets/jm_provenance_badge.dart';
 import '../../../shared/widgets/jm_states.dart';
 import '../data/leaderboard_repository.dart';
@@ -86,7 +87,12 @@ class LeaderboardScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: Insets.md),
-
+                const JmDemoNotice(
+                  message:
+                      'Sample contributors and scores for Yadgir. '
+                      'These are not your account\'s activity or standing.',
+                ),
+                const SizedBox(height: Insets.md),
                 JmEnter(index: 2, child: _PeriodSelector(selected: period)),
                 const SizedBox(height: Insets.lg),
 
@@ -245,7 +251,7 @@ class _YourStanding extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Your standing',
+                  'Sample standing',
                   style: JanMaangTypography.labelMd.copyWith(
                     color: scheme.primaryFixedDim,
                   ),

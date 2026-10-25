@@ -110,7 +110,7 @@ class HomeMapPreview extends ConsumerWidget {
                         child: JmAnimatedCount(
                           value: issues.length,
                           builder: (context, value) => Text(
-                            'Live resource map · $value sites',
+                            'Demo resource map · $value sites',
                             style: JanMaangTypography.labelMd.copyWith(
                               color: scheme.onSurface,
                             ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/config/app_config.dart';
+
 import '../../../../core/routing/routes.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/janmaang_colors.dart';
@@ -175,7 +177,9 @@ class IssuePopupCard extends ConsumerWidget {
                     if (issue.demandId != null)
                       JmPressable(
                         onTap: () => context.pushNamed(
-                          AppRoute.demandDetail.name,
+                          AppConfig.useMocks
+                              ? AppRoute.demandDetail.name
+                              : AppRoute.demoDemandDetail.name,
                           pathParameters: <String, String>{
                             'id': issue.demandId!,
                           },

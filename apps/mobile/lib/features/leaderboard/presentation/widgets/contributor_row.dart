@@ -60,7 +60,7 @@ class ContributorRow extends StatelessWidget {
                     if (me) ...<Widget>[
                       const SizedBox(width: Insets.xs),
                       Text(
-                        '· you',
+                        '· sample',
                         style: JanMaangTypography.labelMd.copyWith(
                           color: scheme.secondary,
                         ),

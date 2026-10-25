@@ -187,6 +187,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoute.demoDemandDetail.path,
+        name: AppRoute.demoDemandDetail.name,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => DemandDetailScreen(
+          demandId: state.pathParameters['id']!,
+          preview: true,
+        ),
+      ),
+      GoRoute(
         path: AppRoute.demandDetail.path,
         name: AppRoute.demandDetail.name,
         parentNavigatorKey: _rootKey,

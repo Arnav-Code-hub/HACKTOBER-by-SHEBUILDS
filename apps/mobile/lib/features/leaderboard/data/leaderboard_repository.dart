@@ -2,9 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/app_config.dart';
-import '../../../core/errors/failure.dart';
-
 import '../domain/contributor.dart';
 
 abstract interface class LeaderboardRepository {
@@ -192,16 +189,8 @@ class MockLeaderboardRepository implements LeaderboardRepository {
   }
 }
 
-class UnavailableLeaderboardRepository implements LeaderboardRepository {
-  @override
-  Future<List<Contributor>> topContributors(LeaderboardPeriod period) async =>
-      throw const ServerFailure('Contributor rankings are not connected yet.');
-}
-
 final leaderboardRepositoryProvider = Provider<LeaderboardRepository>(
-  (ref) => AppConfig.useMocks
-      ? MockLeaderboardRepository()
-      : UnavailableLeaderboardRepository(),
+  (ref) => MockLeaderboardRepository(),
 );
 
 final leaderboardPeriodProvider = NotifierProvider<_Period, LeaderboardPeriod>(

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
+import '../../../shared/widgets/jm_demo_notice.dart';
 import 'map_controller.dart';
 import 'map_screen.dart';
 
@@ -24,7 +26,7 @@ class FullMapScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: JmAppBar.task(
-        title: 'Live resource map',
+        title: 'Demo resource map',
         actions: <Widget>[
           Center(
             child: Padding(
@@ -43,12 +45,23 @@ class FullMapScreen extends ConsumerWidget {
             icon: const Icon(Icons.help_outline, size: 20),
             color: scheme.onSurfaceVariant,
             tooltip: 'How this map is built',
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoute.method.path),
+            onPressed: () => context.pushNamed(AppRoute.method.name),
           ),
         ],
       ),
-      body: const MapScreen(),
+      body: const Column(
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.all(Insets.sm),
+            child: JmDemoNotice(
+              message:
+                  'Sample reports with approximate locations. '
+                  'Your saved reports are available in Track.',
+            ),
+          ),
+          Expanded(child: MapScreen()),
+        ],
+      ),
     );
   }
 }

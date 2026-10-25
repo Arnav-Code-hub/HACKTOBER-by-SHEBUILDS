@@ -13,10 +13,10 @@ final communityPulseProvider = FutureProvider.autoDispose<CommunityPulse>((
   final district = user?.district.isNotEmpty == true
       ? user!.district
       : AppConfig.defaultDistrict;
-  return ref.watch(demandsRepositoryProvider).getCommunityPulse(district);
+  return ref.watch(demoDemandsRepositoryProvider).getCommunityPulse(district);
 });
 
 /// The "Near You" demand list.
 final nearbyDemandsProvider = StreamProvider.autoDispose<List<Demand>>(
-  (ref) => ref.watch(demandsRepositoryProvider).watchNearbyDemands(),
+  (ref) => ref.watch(demoDemandsRepositoryProvider).watchNearbyDemands(),
 );

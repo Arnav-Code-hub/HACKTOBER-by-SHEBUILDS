@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/theme/janmaang_colors.dart';
 import '../../../core/theme/janmaang_typography.dart';
 import '../../../core/theme/motion.dart';
@@ -44,17 +43,6 @@ class MapScreenState extends ConsumerState<MapScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (!AppConfig.useMocks) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'The community map is not connected yet. '
-            'Use Track to view your saved reports.',
-          ),
-        ),
-      );
-    }
     final scheme = Theme.of(context).colorScheme;
     final issues = ref.watch(filteredIssuesProvider);
     final selectedId = ref.watch(selectedIssueProvider);

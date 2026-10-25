@@ -10,6 +10,7 @@ import '../../../core/theme/janmaang_typography.dart';
 import '../../../shared/models/demand_enums.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
+import '../../../shared/widgets/jm_demo_notice.dart';
 import '../../../shared/widgets/jm_metric_bar.dart';
 import '../../../shared/widgets/jm_rank_badge.dart';
 import '../../../shared/widgets/jm_states.dart';
@@ -24,27 +25,37 @@ import 'demand_providers.dart';
 /// card with its five metric bars and the objection action, and the status
 /// timeline. Two columns on wide screens, stacked on mobile.
 class DemandDetailScreen extends ConsumerWidget {
-  const DemandDetailScreen({super.key, required this.demandId});
+  const DemandDetailScreen({
+    super.key,
+    required this.demandId,
+    this.preview = false,
+  });
 
   final String demandId;
+  final bool preview;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final demandAsync = ref.watch(demandProvider(demandId));
+    final source = preview
+        ? demoDemandProvider(demandId)
+        : demandProvider(demandId);
+    final demandAsync = ref.watch(source);
     final userId = ref.watch(currentUserProvider)?.uid;
 
     return Scaffold(
       appBar: JmAppBar.task(title: 'Demand'),
       body: demandAsync.when(
         loading: () => const JmLoader(message: 'Loading this demand…'),
-        error: (error, _) => JmErrorView(
-          error: error,
-          onRetry: () => ref.invalidate(demandProvider(demandId)),
-        ),
+        error: (error, _) =>
+            JmErrorView(error: error, onRetry: () => ref.invalidate(source)),
         data: (demand) => _Body(
           demand: demand,
           // Only the original reporter is asked; the API enforces it too.
-          canVerify: demand.awaitingVerification && demand.reporterId == userId,
+          canVerify:
+              !preview &&
+              demand.awaitingVerification &&
+              demand.reporterId == userId,
+          preview: preview,
         ),
       ),
     );
@@ -52,17 +63,22 @@ class DemandDetailScreen extends ConsumerWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.demand, required this.canVerify});
+  const _Body({
+    required this.demand,
+    required this.canVerify,
+    required this.preview,
+  });
 
   final Demand demand;
   final bool canVerify;
+  final bool preview;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isWide = MediaQuery.of(context).size.width >= Breakpoints.medium;
 
-    final ranking = _RankingCard(demand: demand);
+    final ranking = _RankingCard(demand: demand, preview: preview);
     final timeline = _TimelineCard(demand: demand);
 
     return ListView(
@@ -73,6 +89,14 @@ class _Body extends StatelessWidget {
         Insets.xl,
       ),
       children: <Widget>[
+        if (preview) ...<Widget>[
+          const JmDemoNotice(
+            message:
+                'Read-only sample report. Its ranking and timeline are '
+                'examples; verification and other actions use your saved reports in Track.',
+          ),
+          const SizedBox(height: Insets.md),
+        ],
         Wrap(
           spacing: Insets.sm,
           runSpacing: Insets.sm,
@@ -210,9 +234,10 @@ class _Body extends StatelessWidget {
 
 /// "Why is this ranked #2?" — the five priority factors, each a labelled bar.
 class _RankingCard extends StatelessWidget {
-  const _RankingCard({required this.demand});
+  const _RankingCard({required this.demand, required this.preview});
 
   final Demand demand;
+  final bool preview;
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +309,7 @@ class _RankingCard extends StatelessWidget {
             const SizedBox(height: Insets.md),
           ],
           // Ranking appeals are not connected to the live API yet.
-          if (AppConfig.useMocks) ...<Widget>[
+          if (AppConfig.useMocks && !preview) ...<Widget>[
             const SizedBox(height: Insets.xs),
             OutlinedButton.icon(
               onPressed: () => context.pushNamed(

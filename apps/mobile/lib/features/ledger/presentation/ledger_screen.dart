@@ -7,6 +7,7 @@ import '../../../core/theme/janmaang_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
+import '../../../shared/widgets/jm_demo_notice.dart';
 import '../../../shared/widgets/jm_states.dart';
 import '../../../shared/widgets/jm_status_chip.dart';
 import '../domain/ledger_entry.dart';
@@ -66,7 +67,12 @@ class LedgerScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: Insets.lg),
-
+            const JmDemoNotice(
+              message:
+                  'Sample allocations and verification figures. '
+                  'These are not live funding records; no payments are processed.',
+            ),
+            const SizedBox(height: Insets.lg),
             summary.when(
               loading: () => const SizedBox(
                 height: 120,

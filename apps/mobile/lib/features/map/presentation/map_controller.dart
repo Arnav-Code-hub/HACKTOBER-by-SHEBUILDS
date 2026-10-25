@@ -5,15 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../shared/models/demand_enums.dart';
-import '../../../core/config/app_config.dart';
 
 import '../data/map_fixtures.dart';
 import '../domain/map_issue.dart';
 
 /// Every issue in the corpus, before filtering.
-final allIssuesProvider = Provider<List<MapIssue>>(
-  (ref) => AppConfig.useMocks ? MapFixtures.issues : const <MapIssue>[],
-);
+final allIssuesProvider = Provider<List<MapIssue>>((ref) => MapFixtures.issues);
 
 /// Shared filter state. The Track list and the map both read it, so narrowing
 /// one narrows the other.

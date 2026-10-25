@@ -12,6 +12,7 @@ import '../../../core/theme/motion.dart';
 import '../../../shared/models/demand_enums.dart';
 import '../../../shared/models/provenance.dart';
 import '../../../shared/widgets/jm_featured_carousel.dart';
+import '../../../shared/widgets/jm_demo_notice.dart';
 import '../../../shared/widgets/jm_provenance_badge.dart';
 import '../../../shared/widgets/jm_section_header.dart';
 import '../../../shared/widgets/jm_states.dart';
@@ -44,7 +45,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!AppConfig.useMocks) return const _LiveHome();
     final user = ref.watch(currentUserProvider);
     final pulse = ref.watch(communityPulseProvider);
     final nearby = ref.watch(nearbyDemandsProvider);
@@ -80,7 +80,7 @@ class HomeScreen extends ConsumerWidget {
                     greeting: name.isEmpty ? 'Namaste' : 'Namaste, $name',
                     subtitle: place,
                     initials: _initials(name),
-                    hasUnread: true,
+                    hasUnread: AppConfig.useMocks,
                     onAvatarTap: () => context.pushNamed(AppRoute.profile.name),
                     onNotifications: () =>
                         context.pushNamed(AppRoute.profile.name),
@@ -89,6 +89,29 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: Insets.md),
 
+              if (!AppConfig.useMocks) ...<Widget>[
+                Padding(
+                  padding: _gutter,
+                  child: JmPillRow(
+                    title: 'My saved reports',
+                    subtitle: 'Reports saved to your account',
+                    icon: Icons.track_changes,
+                    tint: JmTint.blue,
+                    onTap: () => context.goNamed(AppRoute.track.name),
+                  ),
+                ),
+                const SizedBox(height: Insets.md),
+              ],
+              const Padding(
+                padding: _gutter,
+                child: JmDemoNotice(
+                  message:
+                      'Community figures, nearby reports and maps are '
+                      'sample data for Yadgir. Use Report and Track for '
+                      'your own reports.',
+                ),
+              ),
+              const SizedBox(height: Insets.md),
               JmEnter(index: 1, child: const _FeaturedStrip()),
               const SizedBox(height: Insets.md),
               JmEnter(index: 2, child: const _CategoryScroller()),
@@ -148,7 +171,7 @@ class HomeScreen extends ConsumerWidget {
                 child: JmSectionHeader(
                   title: 'Near you',
                   icon: Icons.near_me_outlined,
-                  actionLabel: 'Map',
+                  actionLabel: 'Demo map',
                   onAction: () => context.pushNamed(AppRoute.map.name),
                 ),
               ),
@@ -198,7 +221,9 @@ class HomeScreen extends ConsumerWidget {
                             child: DemandListCard(
                               demand: demands[i],
                               onTap: () => context.pushNamed(
-                                AppRoute.demandDetail.name,
+                                AppConfig.useMocks
+                                    ? AppRoute.demandDetail.name
+                                    : AppRoute.demoDemandDetail.name,
                                 pathParameters: <String, String>{
                                   'id': demands[i].id,
                                 },
@@ -272,53 +297,6 @@ class HomeScreen extends ConsumerWidget {
     context.pushNamed(
       AppRoute.report.name,
       queryParameters: <String, String>{'channel': channel.name},
-    );
-  }
-}
-
-class _LiveHome extends ConsumerWidget {
-  const _LiveHome();
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, Insets.navClearance),
-          children: <Widget>[
-            JmGreetingHeader(
-              greeting: user?.greetingName.isNotEmpty == true
-                  ? 'Namaste, ${user!.greetingName}'
-                  : 'Namaste',
-              subtitle: 'Your citizen workspace',
-              initials: HomeScreen._initials(user?.greetingName ?? ''),
-              hasUnread: false,
-              onAvatarTap: () => context.pushNamed(AppRoute.profile.name),
-              onNotifications: () => context.pushNamed(AppRoute.profile.name),
-            ),
-            const SizedBox(height: Insets.lg),
-            ReportHeroCard(
-              onStartReport: (channel) => context.pushNamed(
-                AppRoute.report.name,
-                queryParameters: <String, String>{'channel': channel.name},
-              ),
-            ),
-            const SizedBox(height: Insets.lg),
-            JmPillRow(
-              title: 'My saved reports',
-              subtitle: 'Read reports from the API',
-              icon: Icons.track_changes,
-              tint: JmTint.blue,
-              onTap: () => context.goNamed(AppRoute.track.name),
-            ),
-            const SizedBox(height: Insets.md),
-            const Text(
-              'Community maps, ranking, funding totals, and verification '
-              'will be connected in later phases. Saved reports are available in Track.',
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

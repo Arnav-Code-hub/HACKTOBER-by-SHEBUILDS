@@ -44,20 +44,23 @@ Against the live backend (configuration and Developer A's API are required):
 flutter run -d chrome --dart-define-from-file=config/live.local.json
 ```
 
-Missing configuration shows a setup screen; live mode never silently falls back
-to sample data. Email/password sign-in is available through Firebase Auth.
+Missing configuration shows a setup screen. Email/password sign-in uses
+Firebase Auth; report submission, Track and citizen verification use the
+business API. These operations never silently fall back to sample responses.
 Photo uploads use Cloudinary signatures obtained from the API; no Cloudinary
-secret belongs in this app. See [Developer B Day 1](../../docs/development/developer-b-day1.md)
-and [the backend contract](../../docs/api/day1-frontend-contract.md).
+secret belongs in this app. See [the backend contract](../../docs/api/day1-frontend-contract.md).
 
-Day 1 implements authentication/profile verification, report creation, photo
-uploads and the current citizen's report list. Clustering, ranking, ledger,
-verification and other later-phase live features show an explicit unavailable
-state until their backend adapters are implemented. Live persistence and
-external services remain unverified until the configuration and API exist.
+Home's community pulse, nearby examples and map, plus Ranks and Public Ledger,
+keep their original demo fixtures available in both modes. Each view is labelled
+**Demo data**. The map shows approximate sample locations; ranks and allocations
+are not a signed-in citizen's real activity or live funding records. In a live
+build, sample report links open `/demo/demand/:id`, a read-only preview with no
+verification or ranking-write actions. Report and Track still use the real
+account and API, separately from these examples.
 
-Google Maps surfaces stay as styled placeholders until a platform key is
-provisioned; enable them with `--dart-define=MAPS_ENABLED=true`.
+Live cluster-detail/suggestion adapters and ranking appeals remain unavailable.
+Connecting those capabilities must not replace this explicit demo labelling with
+an automatic fallback when a live request fails.
 
 ## Architecture
 

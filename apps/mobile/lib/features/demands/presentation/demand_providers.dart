@@ -4,6 +4,11 @@ import '../../../core/providers.dart';
 import '../domain/demand.dart';
 import '../domain/demand_cluster.dart';
 
+/// Read-only examples reached from Home and the demo map.
+final demoDemandProvider = FutureProvider.autoDispose.family<Demand, String>(
+  (ref, id) => ref.watch(demoDemandsRepositoryProvider).getDemand(id),
+);
+
 final demandProvider = FutureProvider.autoDispose.family<Demand, String>((
   ref,
   id,
