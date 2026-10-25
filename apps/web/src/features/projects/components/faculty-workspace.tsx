@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { DetailList } from "@/components/workspace-panels";
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
@@ -32,14 +33,28 @@ export function FacultyWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Faculty</span>
-        <h1>Review student solutions</h1>
-        <p>
-          Solutions from teams at your institute. Each reviewer can review a
-          submission once.
-        </p>
-      </div>
+      <PageHeading
+        role="Faculty"
+        title="Review student solutions"
+        steps={[
+          "Open a submission from your institute's teams.",
+          "Read the solution and follow its links.",
+          "Leave one review per submission.",
+        ]}
+        stats={[
+          {
+            label: "Waiting for your review",
+            value: countOf(submissions.data?.items, (s) => !s.my_review),
+          },
+          {
+            label: "Reviewed by you",
+            value: countOf(submissions.data?.items, (s) => !!s.my_review),
+          },
+        ]}
+      >
+        Solutions from teams at your institute. Each reviewer can review a
+        submission once.
+      </PageHeading>
 
       <div className="jm-panel-grid">
         <RecordList

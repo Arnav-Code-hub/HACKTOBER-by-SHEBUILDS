@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { STATUS_DISPLAY } from "@/components/workspace/status-badge";
@@ -45,14 +46,18 @@ export function AdminWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Administration</span>
-        <h1>District oversight</h1>
-        <p>
-          Progress, recorded funding and the audit trail for your scope. Amounts
-          are recorded allocations and pledges, not payments.
-        </p>
-      </div>
+      <PageHeading
+        role="Administration"
+        title="District oversight"
+        steps={[
+          "Follow reports and work orders by status.",
+          "Check recorded allocations and CSR pledges.",
+          "Review the audit trail; super admins manage roles.",
+        ]}
+      >
+        Progress, recorded funding and the audit trail for your scope. Amounts
+        are recorded allocations and pledges, not payments.
+      </PageHeading>
 
       {summary.data && (
         <div className="jm-button-row jm-refresh-row">

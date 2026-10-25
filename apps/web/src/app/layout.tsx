@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { QueryProvider } from "@/lib/api/use-api";
 import { SessionProvider } from "@/lib/auth/session";
 
+// Condensed display face for headings (SIL OFL 1.1), bundled with the app.
+import "@fontsource/anton/400.css";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {

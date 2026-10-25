@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { DetailList } from "@/components/workspace-panels";
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { EvidenceView } from "@/components/workspace/evidence-view";
 import { PhotoUploader } from "@/components/workspace/photo-uploader";
@@ -30,14 +31,41 @@ export function OfficerWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Officer</span>
-        <h1>Your assigned work</h1>
-        <p>
-          Record progress and upload completion photos. The citizen who reported
-          the problem decides whether it was fixed.
-        </p>
-      </div>
+      <PageHeading
+        role="Officer"
+        title="Your assigned work"
+        steps={[
+          "Open a work order to see the citizen's photo.",
+          "Save progress notes as the work moves.",
+          "Upload completion photos; the reporter decides.",
+        ]}
+        stats={[
+          { label: "Assigned to you", value: countOf(orders.data?.items) },
+          {
+            label: "Work under way",
+            value: countOf(orders.data?.items, (o) =>
+              ["funded", "in_progress"].includes(o.status),
+            ),
+          },
+          {
+            label: "With the citizen",
+            value: countOf(
+              orders.data?.items,
+              (o) => o.status === "awaiting_verification",
+            ),
+          },
+          {
+            label: "Confirmed fixed",
+            value: countOf(
+              orders.data?.items,
+              (o) => o.status === "citizen_verified",
+            ),
+          },
+        ]}
+      >
+        Record progress and upload completion photos. The citizen who reported
+        the problem decides whether it was fixed.
+      </PageHeading>
 
       <div className="jm-panel-grid">
         <RecordList

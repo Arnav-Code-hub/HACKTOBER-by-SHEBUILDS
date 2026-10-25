@@ -207,6 +207,12 @@ radii and elevation recipe in `lib/core/theme/` are transcribed from that
 design system rather than approximated — see
 [docs/STITCH_INVENTORY.md](docs/STITCH_INVENTORY.md).
 
+The staff web app adds a "bold accents" layer on the same tokens: condensed
+display headings in [Anton](https://github.com/googlefonts/AntonFont) (SIL Open
+Font License 1.1, bundled via `@fontsource/anton`), a charcoal sidebar, pill
+controls and colour-block counters (`--jm-accent-*`). The accents are
+decoration only; status, severity and density keep the five-tier palette.
+
 ## Security
 
 No server-side credential ships in any client: Firebase service-account keys,

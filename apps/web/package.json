@@ -16,6 +16,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource/anton": "^5.3.0",
     "@janmaang/contracts": "workspace:*",
     "@janmaang/tokens": "workspace:*",
     "@janmaang/ui": "workspace:*",
