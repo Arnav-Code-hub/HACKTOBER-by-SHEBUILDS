@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
@@ -48,14 +49,26 @@ export function StudentWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Student</span>
-        <h1>Solve a published local problem</h1>
-        <p>
-          Form a team around a problem statement. Once your institute approves
-          the team, submit your solution for faculty review.
-        </p>
-      </div>
+      <PageHeading
+        role="Student"
+        title="Solve a published local problem"
+        steps={[
+          "Choose a published problem statement.",
+          "Form a team and wait for institute approval.",
+          "Submit your solution for faculty review.",
+        ]}
+        stats={[
+          { label: "Open statements", value: countOf(statements.data?.items) },
+          { label: "Teams joined", value: countOf(teams.data?.items) },
+          {
+            label: "Solutions submitted",
+            value: countOf(submissions.data?.items),
+          },
+        ]}
+      >
+        Form a team around a problem statement. Once your institute approves the
+        team, submit your solution for faculty review.
+      </PageHeading>
 
       <RecordList
         title="Published problem statements"

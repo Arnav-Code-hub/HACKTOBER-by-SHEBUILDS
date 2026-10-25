@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { ScoreBreakdown } from "@/components/workspace/score-breakdown";
@@ -46,15 +47,24 @@ export function DepartmentWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Department</span>
-        <h1>Fund the ranked list</h1>
-        <p>
-          Allocations are recorded against a cluster and its work order is
-          assigned to an officer in your district. This records the allocation;
-          it does not move money.
-        </p>
-      </div>
+      <PageHeading
+        role="Department"
+        title="Fund the ranked list"
+        steps={[
+          "Pick a prioritised cluster from the ranked list.",
+          "Record the allocation and assign an officer.",
+          "Publish problem statements for students and CSR partners.",
+        ]}
+        stats={[
+          { label: "Ready to fund", value: countOf(ranked.data?.items) },
+          { label: "Officers to assign", value: countOf(officers.data?.items) },
+          { label: "Statements", value: countOf(statements.data?.items) },
+        ]}
+      >
+        Allocations are recorded against a cluster and its work order is
+        assigned to an officer in your district. This records the allocation; it
+        does not move money.
+      </PageHeading>
 
       <RankedClusters
         onSelect={(c) => setClusterId(c.id)}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
@@ -25,14 +26,28 @@ export function InstituteWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Institute</span>
-        <h1>Approve your student teams</h1>
-        <p>
-          Approved teams can submit solutions to published problem statements.
-          You only see teams from your own institute.
-        </p>
-      </div>
+      <PageHeading
+        role="Institute"
+        title="Approve your student teams"
+        steps={[
+          "See the teams your students have formed.",
+          "Approve teams that are ready to work.",
+          "Approved teams can submit solutions.",
+        ]}
+        stats={[
+          {
+            label: "Awaiting approval",
+            value: countOf(teams.data?.items, (t) => !t.institute_approved),
+          },
+          {
+            label: "Approved teams",
+            value: countOf(teams.data?.items, (t) => t.institute_approved),
+          },
+        ]}
+      >
+        Approved teams can submit solutions to published problem statements. You
+        only see teams from your own institute.
+      </PageHeading>
 
       <div className="jm-panel-grid">
         <RecordList

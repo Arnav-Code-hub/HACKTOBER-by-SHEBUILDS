@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
@@ -30,14 +31,33 @@ export function IndustryWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Industry / CSR</span>
-        <h1>Support a local problem</h1>
-        <p>
-          Pledge support for a published problem statement. A pledge is recorded
-          for transparency; no payment is taken here.
-        </p>
-      </div>
+      <PageHeading
+        role="Industry / CSR"
+        title="Support a local problem"
+        steps={[
+          "Browse problem statements published in your district.",
+          "Pledge support to one that fits your CSR goals.",
+          "Every pledge is a transparent record, never a transfer.",
+        ]}
+        stats={[
+          { label: "Open statements", value: countOf(statements.data?.items) },
+          { label: "Pledges made", value: countOf(pledges.data?.items) },
+          {
+            label: "Pledged in total",
+            value: pledges.data
+              ? formatPaise(
+                  pledges.data.items.reduce(
+                    (sum, p) => sum + p.amount_paise,
+                    0,
+                  ),
+                )
+              : undefined,
+          },
+        ]}
+      >
+        Pledge support for a published problem statement. A pledge is recorded
+        for transparency; no payment is taken here.
+      </PageHeading>
 
       <div className="jm-panel-grid">
         <RecordList

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { PageHeading, countOf } from "@/components/workspace/page-heading";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { StatusBadge } from "@/components/workspace/status-badge";
@@ -9,7 +10,12 @@ import { useInvalidate } from "@/lib/api/hooks";
 import { useApi } from "@/lib/api/use-api";
 
 import { assignCluster, validateReport, type Report } from "../api";
-import { useClusterSuggestions, useReport, useReportQueue } from "../hooks";
+import {
+  useClusterSuggestions,
+  useRankedClusters,
+  useReport,
+  useReportQueue,
+} from "../hooks";
 import { CATEGORY_LABEL, reportedOn } from "../labels";
 import { RankedClusters } from "./ranked-clusters";
 import { ReportDetail } from "./report-detail";
@@ -45,6 +51,7 @@ export function PanchayatWorkspace() {
 
   const toValidate = useReportQueue("reported");
   const toCluster = useReportQueue("verified");
+  const ranked = useRankedClusters();
   const report = useReport(selectedId);
   const selected = report.data;
   const suggestions = useClusterSuggestions(
@@ -57,15 +64,24 @@ export function PanchayatWorkspace() {
 
   return (
     <>
-      <div className="jm-page-heading">
-        <span className="jm-badge">Panchayat</span>
-        <h1>Validate and group local reports</h1>
-        <p>
-          Check each citizen report, then confirm whether it describes a problem
-          already raised nearby. Confirmed clusters enter the district&rsquo;s
-          ranked list.
-        </p>
-      </div>
+      <PageHeading
+        role="Panchayat"
+        title="Validate and group local reports"
+        steps={[
+          "Check that each new report is genuine and in your area.",
+          "Group reports that describe the same problem.",
+          "Grouped clusters join the district's ranked list.",
+        ]}
+        stats={[
+          { label: "To validate", value: countOf(toValidate.data?.items) },
+          { label: "To group", value: countOf(toCluster.data?.items) },
+          { label: "In the ranking", value: countOf(ranked.data?.items) },
+        ]}
+      >
+        Check each citizen report, then confirm whether it describes a problem
+        already raised nearby. Confirmed clusters enter the district&rsquo;s
+        ranked list.
+      </PageHeading>
 
       <div className="jm-panel-grid">
         <div className="jm-stack">
