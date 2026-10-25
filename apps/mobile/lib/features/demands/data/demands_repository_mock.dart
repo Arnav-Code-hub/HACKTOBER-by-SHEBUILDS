@@ -76,7 +76,7 @@ class MockDemandsRepository implements DemandsRepository {
   }
 
   @override
-  Future<void> joinCluster(String clusterId) async {
+  Future<int> joinCluster(String clusterId) async {
     await Future<void>.delayed(_latency);
     final existing = _clusters[clusterId];
     if (existing == null) throw const NotFoundFailure();
@@ -95,6 +95,8 @@ class MockDemandsRepository implements DemandsRepository {
         )
         .toList();
     _nearbyController.add(_nearby);
+    // Demo data has no separate supporter tally; joining counts as a report.
+    return updated.reportCount;
   }
 
   @override

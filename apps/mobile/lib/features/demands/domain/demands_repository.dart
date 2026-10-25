@@ -23,8 +23,10 @@ abstract interface class DemandsRepository {
     required double longitude,
   });
 
-  /// Adds the citizen's voice to an existing cluster, raising its priority.
-  Future<void> joinCluster(String clusterId);
+  /// Adds the citizen's voice to an existing cluster and returns its supporter
+  /// count afterwards. Each citizen counts once, so repeating it, or joining
+  /// a cluster they reported in, leaves the count unchanged.
+  Future<int> joinCluster(String clusterId);
 
   /// Files a formal objection to a ranking — "Question this ranking".
   Future<void> questionRanking({

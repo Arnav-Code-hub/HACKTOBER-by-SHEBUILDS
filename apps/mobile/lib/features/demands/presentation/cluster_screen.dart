@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/failure.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
@@ -55,19 +56,31 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
   }
 
   Future<void> _join(DemandCluster cluster) async {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-
+    // No client-side user check: the API authenticates the request, and a
+    // user still loading would turn the tap into a silent no-op.
     setState(() => _joining = true);
     try {
-      await ref.read(demandsRepositoryProvider).joinCluster(cluster.id);
+      final supporters = await ref
+          .read(demandsRepositoryProvider)
+          .joinCluster(cluster.id);
       if (!mounted) return;
       setState(() => _joined = true);
+      // State what was recorded; whether the ranking moves depends on the
+      // other factors and on the cluster still awaiting funding.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your voice was added. This demand just moved up.'),
+        SnackBar(
+          content: Text(
+            'Your support is recorded. ${Formatters.count(supporters)} '
+            '${supporters == 1 ? 'person supports' : 'people support'} this '
+            'demand.',
+          ),
         ),
       );
+    } on Failure catch (failure) {
+      // 403 another district, 404 gone, 409 already past verification.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failure.message)));
     } finally {
       if (mounted) setState(() => _joining = false);
     }

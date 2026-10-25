@@ -31,7 +31,7 @@ void main() {
       addTearDown(api.close);
       final repository = HttpDemandsRepository(api);
 
-      await repository.joinCluster(clusterId);
+      expect(await repository.joinCluster(clusterId), 4);
 
       expect(captured.method, 'POST');
       expect(captured.url.path, '/api/v1/clusters/$clusterId/support');

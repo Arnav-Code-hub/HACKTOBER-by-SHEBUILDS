@@ -62,16 +62,18 @@ class HttpDemandsRepository implements DemandsRepository {
   }) async =>
       throw const ServerFailure('Cluster suggestions are not connected yet.');
   @override
-  Future<void> joinCluster(String clusterId) async {
+  Future<int> joinCluster(String clusterId) async {
     final response = jsonObject(
       await _api.post(
         'clusters/${Uri.encodeComponent(clusterId)}/support',
         const <String, Object?>{},
       ),
     );
-    if (response['id'] != clusterId || response['supporter_count'] is! int) {
+    final supporters = response['supporter_count'];
+    if (response['id'] != clusterId || supporters is! int || supporters < 1) {
       throw const ServerFailure('The API returned an invalid support receipt.');
     }
+    return supporters;
   }
 
   @override

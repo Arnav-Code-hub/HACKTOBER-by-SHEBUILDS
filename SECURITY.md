@@ -22,7 +22,8 @@ readable in a browser bundle is public, because it is. That covers every
 |---|---|---|
 | `LLM_API_KEY` | `services/ai/.env` locally; secret manager deployed | the API, the web bundle, the APK |
 | `DATABASE_URL` | `services/api/.env`; secret manager deployed | any client |
-| `AUTH_SECRET` | per-service `.env`; secret manager deployed | any client |
+| `GEMINI_API_KEY` | `services/api/.env`; secret manager deployed | any client |
+| `CLOUDINARY_API_SECRET` | `services/api/.env`; secret manager deployed | any client |
 | Firebase service account | API runtime identity | git, any client |
 | `AI_SERVICE_KEY` | shared by API and AI service only | any client |
 | Maps **client** key | web env / mobile manifest, **referrer- and package-restricted** | — public by design, but scoped |

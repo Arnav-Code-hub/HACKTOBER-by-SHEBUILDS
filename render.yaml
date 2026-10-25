@@ -12,8 +12,6 @@ services:
     envVars:
       - key: ENVIRONMENT
         value: staging
-      - key: AUTH_SECRET
-        generateValue: true
       - key: DATABASE_URL
         sync: false
       - key: FIREBASE_PROJECT_ID
@@ -28,5 +26,11 @@ services:
         sync: false
       - key: CLOUDINARY_UPLOAD_PRESET
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: GEMINI_THINKING_BUDGET
+        value: "0"
       - key: CORS_ORIGINS
         sync: false
