@@ -1,0 +1,56 @@
+[project]
+name = "janmaang-ai"
+version = "0.1.0"
+description = "JanMaang AI — one internal service, modular by capability. Stateless."
+requires-python = ">=3.12"
+# Deliberately a SEPARATE dependency set from services/api. Sharing one venv
+# would put these libraries into the API image and triple its size.
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "httpx>=0.27.2",
+    "google-genai>=0.3.0",
+    "redis>=5.2.0",
+    "jinja2>=3.1.4",
+    "structlog>=24.4.0",
+    "tenacity>=9.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "respx>=0.21.1",
+    "ruff>=0.7.4",
+    "mypy>=1.13.0",
+]
+# Heavy local-inference extras. Kept out of the default install so the base
+# image stays small; enable per-deployment when a capability needs them.
+vision = ["pillow>=11.0.0", "rapidocr-onnxruntime>=1.3.24"]
+speech = ["faster-whisper>=1.0.3"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["google.genai.*", "rapidocr_onnxruntime.*", "faster_whisper.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "eval: quality evaluation, not a test. Makes real LLM calls and costs money.",
+]

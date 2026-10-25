@@ -1,0 +1,6 @@
+# pnpm owns the TypeScript half of the repo only.
+# apps/mobile uses pub; services/* use uv. Do not add them here.
+packages:
+  - "apps/web"
+  - "packages/*"
+  - "tests/e2e"

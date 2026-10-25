@@ -1,0 +1,24 @@
+{
+  "name": "@janmaang/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design tokens. One JSON source generates CSS variables and Dart constants.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./dist/tokens.css"
+  },
+  "scripts": {
+    "build": "node scripts/build-tokens.mjs",
+    "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests\" && exit 0"
+  },
+  "devDependencies": {
+    "@janmaang/config": "workspace:*",
+    "typescript": "^5.6.3",
+    "eslint": "^9.14.0"
+  }
+}

@@ -1,0 +1,54 @@
+# Secret scanning. Runs as a pre-commit hook AND in CI — the hook alone is
+# bypassable with `git commit --no-verify`, so CI is the real gate.
+title = "JanMaang secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "gemini-api-key"
+description = "Google AI / Gemini API key"
+regex = '''AIza[0-9A-Za-z_\-]{35}'''
+tags = ["key", "google"]
+
+[[rules]]
+id = "firebase-service-account"
+description = "Firebase / GCP service account private key"
+regex = '''"type"\s*:\s*"service_account"'''
+tags = ["key", "gcp"]
+
+# The generic detector mistakes this public deterministic seed identifier for
+# an API key. Match both its exact value and its source path, including history.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Public organization seed lookup identifier"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^services/api/app/seeds/data\.py$''']
+regexes = ['''^district/boundary$''']
+
+# API tests label Idempotency-Key headers with readable words such as
+# "verdict-phase5"; the generic detector reads `key="..."` as a credential.
+# Only lowercase hyphenated words under the API tests are exempt.
+[[rules.allowlists]]
+description = "Readable idempotency-key labels in API tests"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^services/api/tests/''']
+regexes = ['''^[a-z][a-z0-9]*(-[a-z0-9]+)+$''']
+
+[allowlist]
+description = "Placeholders, fixtures and generated lockfiles"
+paths = [
+  '''\.env\.example$''',
+  '''.*\.example\..*''',
+  '''pnpm-lock\.yaml$''',
+  '''pubspec\.lock$''',
+  '''uv\.lock$''',
+  '''docs/.*\.md$''',
+]
+regexes = [
+  '''(?i)(your|example|placeholder|changeme|xxx+|<[a-z-]+>)''',
+]

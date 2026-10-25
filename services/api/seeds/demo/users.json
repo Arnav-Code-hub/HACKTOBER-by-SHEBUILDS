@@ -1,0 +1,62 @@
+[
+  {
+    "role": "citizen",
+    "firebase_uid": null,
+    "email": "citizen@janmaang.example",
+    "display_name": "Demo citizen"
+  },
+  {
+    "role": "student",
+    "firebase_uid": null,
+    "email": "student@janmaang.example",
+    "display_name": "Demo student"
+  },
+  {
+    "role": "faculty",
+    "firebase_uid": null,
+    "email": "faculty@janmaang.example",
+    "display_name": "Demo faculty"
+  },
+  {
+    "role": "institute",
+    "firebase_uid": null,
+    "email": "institute@janmaang.example",
+    "display_name": "Demo institute"
+  },
+  {
+    "role": "panchayat",
+    "firebase_uid": null,
+    "email": "panchayat@janmaang.example",
+    "display_name": "Demo panchayat"
+  },
+  {
+    "role": "department",
+    "firebase_uid": null,
+    "email": "department@janmaang.example",
+    "display_name": "Demo department"
+  },
+  {
+    "role": "officer",
+    "firebase_uid": null,
+    "email": "officer@janmaang.example",
+    "display_name": "Demo officer"
+  },
+  {
+    "role": "industry",
+    "firebase_uid": null,
+    "email": "industry@janmaang.example",
+    "display_name": "Demo industry"
+  },
+  {
+    "role": "gov_admin",
+    "firebase_uid": null,
+    "email": "gov_admin@janmaang.example",
+    "display_name": "Demo gov admin"
+  },
+  {
+    "role": "super_admin",
+    "firebase_uid": null,
+    "email": "super_admin@janmaang.example",
+    "display_name": "Demo super admin"
+  }
+]

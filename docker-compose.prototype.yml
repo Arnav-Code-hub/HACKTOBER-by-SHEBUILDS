@@ -1,0 +1,34 @@
+# Explicit opt-in prototype stack; does not load the legacy Compose override.
+# cp services/api/.env.example services/api/.env, then:
+# docker compose -f docker-compose.prototype.yml up --build
+name: janmaang-prototype
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: janmaang
+      POSTGRES_PASSWORD: janmaang
+      POSTGRES_DB: janmaang
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["prototype_postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U janmaang -d janmaang"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    build:
+      context: ./services/api
+      target: development
+    env_file: ./services/api/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@postgres:5432/janmaang
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - ./services/api:/app
+      - /app/.venv
+    depends_on:
+      postgres: { condition: service_healthy }
+volumes:
+  prototype_postgres:

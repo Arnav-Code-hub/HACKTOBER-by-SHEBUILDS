@@ -1,0 +1,50 @@
+name: Deploy · production
+
+# Manual only, gated by the `production` GitHub Environment (required reviewers).
+# Deploys an image already verified in staging — it never rebuilds from source,
+# so what ships is byte-identical to what was tested.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA to promote (must already be on staging)"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production        # approval gate lives here
+    permissions: { contents: read, packages: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Retag staging images as production
+        run: |
+          # ghcr.io rejects uppercase repository names.
+          repo="${GITHUB_REPOSITORY,,}"
+          for s in api ai web; do
+            docker buildx imagetools create \
+              --tag "ghcr.io/$repo/$s:production" \
+              "ghcr.io/$repo/$s:${{ inputs.sha }}"
+          done
+      - name: Back up the database before migrating
+        run: bash infrastructure/scripts/backup.sh
+      - name: Migrate and release
+        run: |
+          echo "TODO(deploy): alembic upgrade head, then roll the services."
+      - name: Smoke test
+        run: bash infrastructure/scripts/smoke-test.sh "${{ vars.PRODUCTION_URL }}"
+      - name: Roll back on failure
+        if: failure()
+        run: bash infrastructure/scripts/rollback.sh

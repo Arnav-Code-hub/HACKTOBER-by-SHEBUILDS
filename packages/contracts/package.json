@@ -1,0 +1,21 @@
+{
+  "name": "@janmaang/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generated API contract. Do not hand-edit \u2014 run `make contracts`.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "bash ../../scripts/gen-contracts.sh",
+    "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests \u2014 generated code\" && exit 0"
+  },
+  "devDependencies": {
+    "@janmaang/config": "workspace:*",
+    "openapi-typescript": "^7.4.2",
+    "typescript": "^5.6.3",
+    "eslint": "^9.14.0"
+  }
+}

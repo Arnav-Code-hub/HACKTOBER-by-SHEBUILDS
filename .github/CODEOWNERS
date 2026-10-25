@@ -1,0 +1,41 @@
+# CODEOWNERS — routing, not gatekeeping.
+#
+# With seven people, requiring owner approval on everything creates a bottleneck
+# the first time someone is asleep. So most paths NOTIFY an owner without
+# blocking; only the three shared surfaces at the bottom actually gate a merge.
+#
+# Replace the placeholder handles below with real GitHub usernames before the
+# first PR — an unresolvable handle silently reviews nothing.
+
+# Default: anyone on the team can review.
+*                                       @janmaang/core
+
+# ─── Component owners (notified, not blocking) ───────────────────────────────
+/apps/mobile/                           @janmaang/mobile
+/apps/web/                              @janmaang/web
+/services/api/                          @janmaang/backend
+/services/ai/                           @janmaang/ai
+/infrastructure/                        @janmaang/devops
+/docs/                                  @janmaang/core
+
+# ─── Shared surfaces (owner review REQUIRED) ─────────────────────────────────
+# A wrong change to any of these breaks every other team at once, so these are
+# the only paths where "Require review from Code Owners" should actually bite.
+
+# The contract between all three clients. Changing it changes web AND mobile.
+/packages/contracts/                    @janmaang/backend @janmaang/web @janmaang/mobile
+
+# Schema changes are the least reversible thing in the repo.
+/services/api/app/migrations/           @janmaang/backend
+
+# The permission matrix. Nine roles: the largest silent-failure surface here.
+/services/api/app/core/permissions.py    @janmaang/backend @janmaang/devops
+
+# Pipeline and deploy changes.
+/.github/workflows/                     @janmaang/devops
+/.github/CODEOWNERS                     @janmaang/core
+
+# Secret-handling rules.
+/.gitignore                             @janmaang/devops
+/.gitleaks.toml                         @janmaang/devops
+/SECURITY.md                            @janmaang/devops

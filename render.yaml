@@ -1,0 +1,36 @@
+# Deployment template only. Set credentials in Render; no resources are created here.
+services:
+  - type: web
+    name: janmaang-api
+    runtime: docker
+    plan: free
+    branch: test
+    autoDeployTrigger: "off"
+    dockerContext: ./services/api
+    dockerfilePath: ./services/api/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: staging
+      - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_PRESET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: GEMINI_THINKING_BUDGET
+        value: "0"
+      - key: CORS_ORIGINS
+        sync: false

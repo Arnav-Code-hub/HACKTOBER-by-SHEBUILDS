@@ -1,0 +1,32 @@
+# Production overlay. No bind mounts, no reload, pinned images, restart policies.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Runtime secrets are injected by the platform's secret manager. The base file
+# marks env_file `required: false`, so a missing .env is fine in production.
+
+services:
+  api:
+    build:
+      target: production
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    restart: unless-stopped
+
+  worker:
+    build:
+      target: production
+    restart: unless-stopped
+
+  ai:
+    build:
+      target: production
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 2
+    restart: unless-stopped
+
+  web:
+    build:
+      target: production
+    command: node apps/web/server.js
+    restart: unless-stopped
+
+  mailhog:
+    profiles: [never]

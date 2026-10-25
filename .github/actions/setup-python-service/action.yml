@@ -1,0 +1,20 @@
+name: Setup Python service
+description: Install uv and sync a Python service's dependencies, with caching.
+inputs:
+  service:
+    description: Path to the service (services/api or services/ai)
+    required: true
+  uv-version:
+    description: uv release matching the service's lockfile format
+    default: "0.5.4"
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v3
+      with:
+        version: "${{ inputs.uv-version }}"
+        enable-cache: true
+        cache-dependency-glob: "${{ inputs.service }}/uv.lock"
+    - shell: bash
+      working-directory: ${{ inputs.service }}
+      run: uv sync --all-groups
