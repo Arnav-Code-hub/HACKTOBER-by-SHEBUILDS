@@ -39,7 +39,6 @@ async def committed_seed(db_engine: AsyncEngine, migrated_database: str) -> Asyn
     settings = Settings(
         _env_file=None,
         database_url=migrated_database,
-        auth_secret="test-secret-long-enough",
         environment="staging",
         seed_reset_allowed=True,
         seed_reset_targets=[f"{url.username}@{url.host}:{url.port or 5432}/{url.database}"],

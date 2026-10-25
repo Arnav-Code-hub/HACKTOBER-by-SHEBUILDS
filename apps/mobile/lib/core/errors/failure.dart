@@ -45,6 +45,10 @@ class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }
 
+class RateLimitFailure extends Failure {
+  const RateLimitFailure(super.message);
+}
+
 /// The server refused the request because the record changed since the
 /// caller last read it (HTTP 409): a conflicting earlier action or a stale
 /// precondition. Callers can explain it or reload instead of retrying blindly.

@@ -81,6 +81,52 @@
         }
       }
     },
+    "/api/v1/reports/suggest": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Suggest Report",
+        "operationId": "suggest_report_api_v1_reports_suggest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSuggestion"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/reports": {
       "post": {
         "tags": [
@@ -2608,6 +2654,21 @@
         ],
         "title": "IdentityAck"
       },
+      "Language": {
+        "type": "string",
+        "enum": [
+          "en",
+          "hi",
+          "mr",
+          "bn",
+          "ta",
+          "te",
+          "kn",
+          "gu"
+        ],
+        "title": "Language",
+        "description": "Languages the citizen app and AI pipeline support."
+      },
       "MediaRead": {
         "properties": {
           "id": {
@@ -3230,6 +3291,54 @@
         ],
         "title": "ReportRead"
       },
+      "ReportSuggestion": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Summary"
+          },
+          "mentioned_location": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mentioned Location"
+          },
+          "detected_language": {
+            "$ref": "#/components/schemas/Language"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category",
+          "severity",
+          "title",
+          "summary",
+          "mentioned_location",
+          "detected_language"
+        ],
+        "title": "ReportSuggestion"
+      },
       "ReviewCreate": {
         "properties": {
           "score": {
@@ -3614,6 +3723,22 @@
           "my_review"
         ],
         "title": "SubmissionRead"
+      },
+      "SuggestionRequest": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Transcript"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "transcript"
+        ],
+        "title": "SuggestionRequest"
       },
       "SupportAck": {
         "properties": {

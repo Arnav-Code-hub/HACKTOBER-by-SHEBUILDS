@@ -24,7 +24,7 @@ abstract interface class DemandsRepository {
   });
 
   /// Adds the citizen's voice to an existing cluster, raising its priority.
-  Future<DemandCluster> joinCluster(String clusterId, String uid);
+  Future<void> joinCluster(String clusterId);
 
   /// Files a formal objection to a ranking — "Question this ranking".
   Future<void> questionRanking({

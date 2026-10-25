@@ -21,14 +21,14 @@ def test_staging_needs_no_redis() -> None:
     settings = Settings(
         _env_file=None,
         database_url="postgresql+asyncpg://test:test@localhost/test",
-        auth_secret="a-test-secret-at-least-16",
         environment="staging",
         cors_origins="http://localhost:3000,http://127.0.0.1:8080",
     )
     assert settings.redis_url is None
     assert settings.cors_origins == ["http://localhost:3000", "http://127.0.0.1:8080"]
     assert settings.gemini_timeout_seconds == 8
-    assert "a-test-secret-at-least-16" not in repr(settings)
+    assert not hasattr(settings, "auth_secret")
+    assert not hasattr(settings, "access_token_ttl_minutes")
 
 
 @pytest.mark.parametrize("origin", ["*", "https://site.test/path", "https://user:pass@site.test"])

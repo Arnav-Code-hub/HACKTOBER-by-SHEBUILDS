@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/media_service.dart';
+import '../../../shared/models/demand_enums.dart';
 import '../../demands/domain/demand.dart';
 import '../domain/report_draft.dart';
 import '../domain/report_repository.dart';
@@ -27,9 +28,69 @@ class HttpReportRepository implements ReportRepository {
   Future<ReportAnalysis> analyze({
     required String transcript,
     List<String> photoPaths = const <String>[],
-  }) async => throw const ServerFailure(
-    'AI suggestions are not connected yet. Enter the title, category, and severity below.',
-  );
+  }) async {
+    const unavailable =
+        'Suggestions are unavailable right now. Enter the details yourself.';
+    try {
+      // Photos stay in the evidence flow; suggestions send only the transcript.
+      final data = jsonObject(
+        await _api.post('reports/suggest', <String, Object?>{
+          'transcript': transcript.trim(),
+        }),
+      );
+      String text(String key, int max, {bool emptyAllowed = false}) {
+        final value = data[key];
+        if (value is! String ||
+            value.length > max ||
+            (!emptyAllowed && value.trim().isEmpty)) {
+          throw const ServerFailure(unavailable);
+        }
+        return value.trim();
+      }
+
+      final categoryName = text('category', 30);
+      final severityName = text('severity', 30);
+      final category = DemandCategory.values.where(
+        (v) => v.name == categoryName,
+      );
+      final severity = Severity.values.where((v) => v.name == severityName);
+      final language = text('detected_language', 2);
+      if (category.isEmpty ||
+          severity.isEmpty ||
+          !const <String>{
+            'en',
+            'hi',
+            'mr',
+            'bn',
+            'ta',
+            'te',
+            'kn',
+            'gu',
+          }.contains(language) ||
+          !data.containsKey('mentioned_location') ||
+          (data['mentioned_location'] != null &&
+              data['mentioned_location'] is! String)) {
+        throw const ServerFailure(unavailable);
+      }
+      final location = data['mentioned_location'] == null
+          ? ''
+          : text('mentioned_location', 200, emptyAllowed: true);
+      return ReportAnalysis(
+        category: category.first,
+        severity: severity.first,
+        title: text('title', 120),
+        summary: text('summary', 500),
+        mentionedLocation: location,
+        detectedLanguage: language,
+      );
+    } on RateLimitFailure {
+      throw const RateLimitFailure(
+        'Too many suggestion requests; wait a minute.',
+      );
+    } on ServerFailure {
+      throw const ServerFailure(unavailable);
+    }
+  }
 
   @override
   Future<Demand> submit(ReportDraft draft, String uid) async {

@@ -44,11 +44,11 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = ""
     gemini_timeout_seconds: int = Field(default=8, ge=1, le=60)
+    # 0 turns thinking off (Flash models); -1 is the model's dynamic default.
+    # Models that cannot disable thinking need a small positive budget.
+    gemini_thinking_budget: int = Field(default=0, ge=-1, le=8192)
 
     maps_api_key: str = ""
-
-    auth_secret: SecretStr = Field(min_length=16)
-    access_token_ttl_minutes: int = 60
 
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 

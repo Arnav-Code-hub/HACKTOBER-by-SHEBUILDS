@@ -52,7 +52,6 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@localhost:5432/janmaang_test
       TEST_DATABASE_URL: postgresql+asyncpg://janmaang:janmaang@localhost:5432/janmaang_test
       ENVIRONMENT: staging
-      AUTH_SECRET: ci-only-secret-value-not-real
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-service

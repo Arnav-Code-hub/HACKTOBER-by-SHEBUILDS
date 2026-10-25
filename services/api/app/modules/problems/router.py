@@ -2,15 +2,17 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.errors import PermissionDeniedError
 from app.core.security import Principal, get_current_principal
 from app.integrations.cloudinary import MediaProvider, get_media_provider
-from app.modules.problems import clusters, service, verification, work_orders
+from app.integrations.gemini import SuggestionProvider, get_suggestion_provider
+from app.modules.problems import clusters, service, suggestions, verification, work_orders
 from app.modules.problems.schemas import (
     AssignCluster,
     ClusterSuggestions,
@@ -24,7 +26,9 @@ from app.modules.problems.schemas import (
     ReportCreate,
     ReportList,
     ReportRead,
+    ReportSuggestion,
     StatusAck,
+    SuggestionRequest,
     SupportAck,
     ValidateReport,
     VerificationRead,
@@ -38,6 +42,19 @@ clusters_router = APIRouter(prefix="/clusters", tags=["Clusters"])
 work_orders_router = APIRouter(prefix="/work-orders", tags=["Work orders"])
 
 IdempotencyKey = Header(alias="Idempotency-Key", min_length=1, max_length=200, pattern=r"\S")
+
+
+@router.post("/suggest", response_model=ReportSuggestion)
+async def suggest_report(
+    body: SuggestionRequest,
+    request: Request,
+    principal: Principal = Depends(get_current_principal),
+    settings: Settings = Depends(get_settings),
+    provider: SuggestionProvider = Depends(get_suggestion_provider),
+) -> ReportSuggestion:
+    return await suggestions.suggest_report(
+        principal, body, settings, provider, request.app.state.suggestion_limiter
+    )
 
 
 @router.post("", response_model=ReportRead, status_code=201)

@@ -34,7 +34,6 @@ Install Python 3.12+ and uv 0.13.5. From `services/api`:
 
 ```bash
 cp .env.example .env
-# Replace AUTH_SECRET with a generated secret (at least 16 characters).
 uv sync --frozen --all-groups
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```

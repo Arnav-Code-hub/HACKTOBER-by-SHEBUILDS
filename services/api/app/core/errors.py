@@ -59,6 +59,11 @@ class ServiceUnavailableError(AppError):
     code = "service_unavailable"
 
 
+class RateLimitError(AppError):
+    status_code = 429
+    code = "rate_limited"
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _handle(_: Request, exc: AppError) -> JSONResponse:

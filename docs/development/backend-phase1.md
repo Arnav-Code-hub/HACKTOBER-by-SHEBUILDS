@@ -34,7 +34,7 @@ Firebase token verification remain Phase 2 onward.
 ## Run locally
 
 From `services/api`, after copying `.env.example` to `.env` and setting a local
-PostgreSQL `DATABASE_URL` and `AUTH_SECRET`:
+PostgreSQL `DATABASE_URL`:
 
 ```bash
 uv sync --frozen --all-groups

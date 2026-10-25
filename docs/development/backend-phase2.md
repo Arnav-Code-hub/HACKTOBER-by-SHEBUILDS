@@ -98,7 +98,7 @@ delivery savings remain Phase 5 work.
 
 From the repository root, copy `services/api/.env.example` to
 `services/api/.env`, then configure Firebase and Cloudinary as above. Use a
-generated `AUTH_SECRET` of at least 16 characters. Leave Redis unset.
+Leave Redis unset.
 
 Start only the local database:
 
@@ -156,7 +156,7 @@ branch `test`, or create an equivalent Docker web service with:
 
 - Docker context `services/api`, Dockerfile `services/api/Dockerfile`.
 - `ENVIRONMENT=staging`, the dedicated `DATABASE_URL`, server Firebase and
-  Cloudinary settings, `CLOUDINARY_UPLOAD_PRESET`, and a generated `AUTH_SECRET`.
+  Cloudinary settings and `CLOUDINARY_UPLOAD_PRESET`.
 - `CORS_ORIGINS` containing the exact hosted Flutter and Next.js origins.
 - Public health path `/health`. Keep the image's default startup command:
   `python -m app.start`. It migrates first and runs one worker on `$PORT`.

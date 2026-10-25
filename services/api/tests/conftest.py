@@ -16,7 +16,6 @@ from sqlalchemy.pool import NullPool
 
 # Import-time settings must not require real secrets, Firebase or Redis.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@127.0.0.1:5432/test")
-os.environ.setdefault("AUTH_SECRET", "test-only-not-a-real-secret")
 
 from app.core.config import get_settings
 from app.core.roles import Role

@@ -144,6 +144,11 @@ class ApiClient {
           'The server rejected the submitted details. Check the fields.',
         );
       }
+      if (response.statusCode == 429) {
+        throw const RateLimitFailure(
+          'Too many requests. Please wait a minute.',
+        );
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw const ServerFailure(
           'The service is unavailable. Your unsent draft remains in this tab.',

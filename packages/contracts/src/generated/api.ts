@@ -41,6 +41,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suggest Report */
+        post: operations["suggest_report_api_v1_reports_suggest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports": {
         parameters: {
             query?: never;
@@ -789,6 +806,12 @@ export interface components {
              */
             id: string;
         };
+        /**
+         * Language
+         * @description Languages the citizen app and AI pipeline support.
+         * @enum {string}
+         */
+        Language: "en" | "hi" | "mr" | "bn" | "ta" | "te" | "kn" | "gu";
         /** MediaRead */
         MediaRead: {
             /**
@@ -1024,6 +1047,18 @@ export interface components {
             /** Score Breakdown */
             score_breakdown?: components["schemas"]["ScoreFactor"][] | null;
         };
+        /** ReportSuggestion */
+        ReportSuggestion: {
+            category: components["schemas"]["Category"];
+            severity: components["schemas"]["Severity"];
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Mentioned Location */
+            mentioned_location: string | null;
+            detected_language: components["schemas"]["Language"];
+        };
         /** ReviewCreate */
         ReviewCreate: {
             /** Score */
@@ -1169,6 +1204,11 @@ export interface components {
             /** Review Count */
             review_count: number;
             my_review: components["schemas"]["ReviewRead"] | null;
+        };
+        /** SuggestionRequest */
+        SuggestionRequest: {
+            /** Transcript */
+            transcript: string;
         };
         /** SupportAck */
         SupportAck: {
@@ -1416,6 +1456,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OfficerList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_report_api_v1_reports_suggest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SuggestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSuggestion"];
                 };
             };
             /** @description Validation Error */

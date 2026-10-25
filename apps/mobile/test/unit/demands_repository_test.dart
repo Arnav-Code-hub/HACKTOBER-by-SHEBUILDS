@@ -29,10 +29,8 @@ void main() {
       final before = await repository.getCluster(
         DemandFixtures.waterCluster.id,
       );
-      final after = await repository.joinCluster(
-        DemandFixtures.waterCluster.id,
-        'uid-1',
-      );
+      await repository.joinCluster(DemandFixtures.waterCluster.id);
+      final after = await repository.getCluster(DemandFixtures.waterCluster.id);
 
       expect(after.reportCount, before.reportCount + 1);
       expect(after.hasJoined, isTrue);

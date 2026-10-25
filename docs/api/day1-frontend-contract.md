@@ -426,7 +426,22 @@ evidence" and offers Reload; nothing is recorded.
 
 ## Optional suggestion
 
-`POST /api/v1/reports/suggest` accepts `{"transcript":"..."}` and returns category, severity, title, summary, mentioned_location and detected_language. This endpoint is optional on Day 1. Failure must leave manual entry/submission available. It must not create or imply a persisted report.
+`POST /api/v1/reports/suggest` accepts `{"transcript":"..."}` (1–2000 characters after trimming; no other fields) and returns:
+
+```json
+{"category":"water","severity":"high","title":"Handpump not working","summary":"The ward 4 handpump gives no water.","mentioned_location":"Ward 4","detected_language":"hi"}
+```
+
+`category`, `severity` and `detected_language` use the same values as report creation (`detected_language` is one of `en hi mr bn ta te kn gu`); `title` ≤ 120 characters, `summary` ≤ 500, `mentioned_location` ≤ 200 or `null` when no place was mentioned. Every field is a suggestion the citizen can change; it never sets status, clustering, ranking or funding.
+
+| Status | When |
+|---|---|
+| 403 | Caller is not a citizen |
+| 422 | Empty, too long or extra fields |
+| 429 | More than 10 suggestions per citizen per minute (per API instance; resets on restart) |
+| 503 | Not configured, timed out (8 s), provider error, or output that fails validation — `{"detail":"Suggestions are unavailable right now. Enter the details yourself."}` |
+
+Nothing is stored and no idempotency key is needed. Failure must leave manual entry and submission available; it must not create or imply a persisted report. Photos are not sent.
 
 ## Integration gate
 

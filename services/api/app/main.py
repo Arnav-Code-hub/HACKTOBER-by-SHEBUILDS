@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, get_logger
+from app.core.rate_limit import SuggestionRateLimiter
 from app.integrations.firebase import FirebaseTokenVerifier
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     )
 
     app.state.authenticator = DatabaseAuthenticator(FirebaseTokenVerifier())
+    app.state.suggestion_limiter = SuggestionRateLimiter()
 
     if settings.cors_origins:
         app.add_middleware(

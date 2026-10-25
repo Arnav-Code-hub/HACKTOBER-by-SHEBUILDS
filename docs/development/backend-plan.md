@@ -31,9 +31,10 @@ or authentication. Only `app/shared/enums.py` (the agreed statuses) is real.
 Phases 0–5 are the demonstration journey. Every phase ships its own
 acceptance tests; Phase 8 reruns and integrates them.
 
-Implementation progress (25 October 2026): code for Phases 0–6 is implemented
+Implementation progress (25 October 2026): code for Phases 0–7 is implemented
 locally. Implementation notes are in [backend-phase4.md](backend-phase4.md),
-[backend-phase5.md](backend-phase5.md), and [backend-phase6.md](backend-phase6.md).
+[backend-phase5.md](backend-phase5.md), [backend-phase6.md](backend-phase6.md)
+and [backend-phase7.md](backend-phase7.md).
 The Phase 2 provider/deployment gate
 and Phase 5 hosted verification gate remain pending account setup. Continuing
 local development does not mark either hosted gate as passed.
@@ -107,8 +108,8 @@ district.
 
 1. Config (`app/core/config.py`): `redis_url` optional and no Redis
    connection at import (`app/core/redis.py`); Cloudinary and Gemini
-   settings replace `storage_*`; keep `AUTH_SECRET` required (≥ 16 chars) and
-   document it; environments stay `development | staging | production` —
+   settings replace `storage_*`; document only secrets the runtime consumes;
+   environments stay `development | staging | production` —
    **deploy with `ENVIRONMENT=staging`** (`demo` is rejected).
 2. Dependencies: add `cloudinary` and `google-genai` with `uv add`, and
    commit the updated `uv.lock`.
@@ -208,7 +209,7 @@ takes part in the comparison or appears in the refusal message.
 **Deploy now:** Render with the existing Dockerfile; start command
 `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`;
 Supabase **session pooler** URL (or `statement_cache_size=0`);
-`ENVIRONMENT=staging`, `AUTH_SECRET`, Firebase, Cloudinary, Gemini and
+`ENVIRONMENT=staging`, Firebase, Cloudinary, Gemini and
 `CORS_ORIGINS` set in Render; Vercel and Firebase Hosting domains in Firebase
 authorised domains; seed the hosted database.
 
@@ -326,7 +327,7 @@ report creation unaffected.
 
 ## Deployment checklist
 
-- [ ] `ENVIRONMENT=staging`, `AUTH_SECRET` (≥ 16 chars) set in Render
+- [ ] `ENVIRONMENT=staging` and required provider credentials set in Render
 - [ ] Firebase Admin credentials, Cloudinary, Gemini keys set; none in git
 - [ ] `CORS_ORIGINS` = exact Vercel and Firebase Hosting origins
 - [ ] Supabase session pooler URL

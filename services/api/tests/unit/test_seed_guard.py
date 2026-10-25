@@ -13,7 +13,6 @@ def config(
 ) -> Settings:
     values = {
         "database_url": PostgresDsn(url),
-        "auth_secret": "test-secret-long-enough",
         "environment": "staging",
         "seed_reset_allowed": True,
         "seed_reset_targets": [TARGET],

@@ -16,7 +16,22 @@ from pydantic import (
 
 from app.modules.files.schemas import MediaRead
 from app.shared.categories import Category
-from app.shared.enums import ProblemStatus, Severity
+from app.shared.enums import Language, ProblemStatus, Severity
+
+
+class SuggestionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    transcript: str = Field(min_length=1, max_length=2000)
+
+
+class ReportSuggestion(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    category: Category
+    severity: Severity
+    title: str = Field(min_length=1, max_length=120)
+    summary: str = Field(min_length=1, max_length=500)
+    mentioned_location: str | None = Field(max_length=200)
+    detected_language: Language
 
 
 class ReportCreate(BaseModel):

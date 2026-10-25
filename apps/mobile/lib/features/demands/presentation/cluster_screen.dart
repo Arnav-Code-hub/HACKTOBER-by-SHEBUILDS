@@ -29,6 +29,7 @@ class ClusterScreen extends ConsumerStatefulWidget {
 
 class _ClusterScreenState extends ConsumerState<ClusterScreen> {
   bool _joining = false;
+  bool _joined = false;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +46,7 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
         data: (cluster) => _Body(
           cluster: cluster,
           joining: _joining,
+          joined: _joined,
           onJoin: () => _join(cluster),
           onDifferent: () => Navigator.of(context).maybePop(),
         ),
@@ -58,11 +60,9 @@ class _ClusterScreenState extends ConsumerState<ClusterScreen> {
 
     setState(() => _joining = true);
     try {
-      await ref
-          .read(demandsRepositoryProvider)
-          .joinCluster(cluster.id, user.uid);
+      await ref.read(demandsRepositoryProvider).joinCluster(cluster.id);
       if (!mounted) return;
-      ref.invalidate(clusterProvider(cluster.id));
+      setState(() => _joined = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your voice was added. This demand just moved up.'),
@@ -78,12 +78,14 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.cluster,
     required this.joining,
+    required this.joined,
     required this.onJoin,
     required this.onDifferent,
   });
 
   final DemandCluster cluster;
   final bool joining;
+  final bool joined;
   final VoidCallback onJoin;
   final VoidCallback onDifferent;
 
@@ -236,7 +238,7 @@ class _Body extends StatelessWidget {
         ),
         const SizedBox(height: Insets.md),
         FilledButton.icon(
-          onPressed: cluster.hasJoined || joining ? null : onJoin,
+          onPressed: cluster.hasJoined || joined || joining ? null : onJoin,
           icon: joining
               ? SizedBox(
                   width: 18,
@@ -247,10 +249,14 @@ class _Body extends StatelessWidget {
                   ),
                 )
               : Icon(
-                  cluster.hasJoined ? Icons.check_circle : Icons.add_circle,
+                  cluster.hasJoined || joined
+                      ? Icons.check_circle
+                      : Icons.add_circle,
                   size: 20,
                 ),
-          label: Text(cluster.hasJoined ? 'Voice added' : 'Join this demand'),
+          label: Text(
+            cluster.hasJoined || joined ? 'Voice added' : 'Join this demand',
+          ),
         ),
         const SizedBox(height: Insets.sm),
         OutlinedButton(
