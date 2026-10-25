@@ -23,6 +23,7 @@ const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
  * hands the case to the original reporter; the officer cannot mark it fixed.
  */
 export function OfficerWorkspace() {
+  const invalidate = useInvalidate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const orders = useMyWorkOrders();
   const order = orders.data?.items.find((o) => o.id === selectedId) ?? null;
@@ -63,7 +64,7 @@ export function OfficerWorkspace() {
           rows={orders.data?.items}
           isLoading={orders.isLoading}
           error={orders.error}
-          onRefresh={() => void orders.refetch()}
+          onRefresh={() => void invalidate("work-orders")}
           isRefreshing={orders.isFetching}
           emptyMessage="No work orders are assigned to you."
           rowKey={(o) => o.id}
@@ -145,10 +146,7 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
       </section>
 
       {evidence.data ? (
-        <EvidenceView
-          evidence={evidence.data}
-          afterLabel={afterLabel}
-        />
+        <EvidenceView evidence={evidence.data} afterLabel={afterLabel} />
       ) : evidence.isLoading ? (
         <section className="jm-panel">
           <p role="status">Loading the citizen&rsquo;s evidence…</p>

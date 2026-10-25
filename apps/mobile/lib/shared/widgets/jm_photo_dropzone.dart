@@ -43,11 +43,13 @@ class JmPhotoDropzone extends StatelessWidget {
               color: scheme.outlineVariant,
               radius: Corners.lg,
             ),
-            child: SizedBox(
-              height: height,
+            child: Container(
+              constraints: BoxConstraints(minHeight: height),
+              padding: const EdgeInsets.symmetric(vertical: Insets.md),
               width: double.infinity,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Icon(icon, size: 30, color: scheme.onSurfaceVariant),
                   const SizedBox(height: Insets.sm),

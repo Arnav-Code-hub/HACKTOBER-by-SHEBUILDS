@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/services/media_service.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
 import '../../../shared/models/demand_enums.dart';
@@ -16,6 +17,7 @@ import '../../../shared/widgets/jm_states.dart';
 import 'report_controller.dart';
 import 'widgets/analysis_bento.dart';
 import 'widgets/location_action_card.dart';
+import 'widgets/report_location_picker.dart';
 import 'widgets/transcript_card.dart';
 import '../../demands/presentation/demand_providers.dart';
 
@@ -312,20 +314,28 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   }
 
   Future<void> _selectOnMap(BuildContext context) async {
-    // Pinning on a full map needs the Maps SDK key; until then the citizen can
-    // still file with the coarse fix from their device.
-    final controller = ref.read(reportControllerProvider.notifier);
-    await controller.useCurrentLocation();
-    if (!context.mounted) return;
-    if (!ref.read(reportControllerProvider).draft.hasLocation) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Pinned to your current position. Drag-to-pin arrives '
-          'with the map key.',
+    final draft = ref.read(reportControllerProvider).draft;
+    final position = await Navigator.of(context).push<ResolvedPosition>(
+      MaterialPageRoute<ResolvedPosition>(
+        builder: (_) => ReportLocationPicker(
+          initialPosition: draft.hasLocation
+              ? ResolvedPosition(
+                  latitude: draft.latitude!,
+                  longitude: draft.longitude!,
+                  label: draft.locationLabel,
+                )
+              : null,
         ),
       ),
     );
+    if (!mounted || position == null) return;
+    ref
+        .read(reportControllerProvider.notifier)
+        .setLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          label: position.label,
+        );
   }
 
   Future<void> _submit(BuildContext context) async {

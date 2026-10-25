@@ -34,12 +34,12 @@ def provider() -> CloudinaryMediaProvider:
 
 def valid_signature(url: str) -> bool:
     # The installed SDK signs transformation/public_id, excluding the cache
-    # version path, with a 32-character SHA-256 URL signature in long mode.
+    # version path, with the standard 8-character SHA-1 URL signature.
     path = urlsplit(url).path.split("/image/upload/", 1)[1]
     signature, transformed = path.split("/", 1)
     transformation, source = transformed.rsplit("/v123/", 1)
     signed = f"{transformation}/{source}server-secret".encode()
-    expected = base64.urlsafe_b64encode(hashlib.sha256(signed).digest()).decode()[:32]
+    expected = base64.urlsafe_b64encode(hashlib.sha1(signed).digest()).decode()[:8]
     return signature == f"s--{expected}--"
 
 
