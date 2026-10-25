@@ -218,6 +218,7 @@ class ReportController extends Notifier<ReportState> {
     required String label,
   }) {
     state = state.copyWith(
+      clearError: true,
       draft: state.draft.copyWith(
         latitude: latitude,
         longitude: longitude,

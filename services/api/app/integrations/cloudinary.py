@@ -226,7 +226,10 @@ class CloudinaryMediaProvider:
             cloud_name=self.settings.cloudinary_cloud_name,
             api_secret=self.settings.cloudinary_api_secret.get_secret_value(),
             transformation=transformations,
-            long_url_signature=True,
+            # Standard signed URLs work with strict transformations without
+            # requiring account support for long URL signatures.
+            long_url_signature=False,
+            signature_algorithm="sha1",
         )
         return str(url)
 

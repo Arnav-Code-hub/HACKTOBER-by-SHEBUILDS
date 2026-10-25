@@ -210,11 +210,50 @@ describe("Officer workspace", () => {
     expect(api.to("GET", "work-orders/w1/evidence")).toHaveLength(1);
   });
 
+  it("refreshes the selected evidence when another role records a verdict", async () => {
+    let verified = false;
+    const api = installFakeApi({
+      "GET work-orders": () => ({
+        items: [
+          order({
+            status: verified ? "citizen_verified" : "awaiting_verification",
+          }),
+        ],
+      }),
+      "GET work-orders/w1/evidence": () => ({
+        ...evidence,
+        status: verified ? "citizen_verified" : "awaiting_verification",
+        verdict_label: verified
+          ? "Citizen verified"
+          : "Awaiting citizen verification",
+        card_url: media(verified ? "verified-card" : "pending-card").url,
+      }),
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByAltText("Evidence card for YDG-WTR-0001")
+          .getAttribute("src"),
+      ).toBe(media("pending-card").url),
+    );
+    verified = true;
+    fireEvent.click(screen.getByRole("button", { name: /^Refresh$/ }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByAltText("Evidence card for YDG-WTR-0001")
+          .getAttribute("src"),
+      ).toBe(media("verified-card").url),
+    );
+    expect(api.to("GET", "work-orders/w1/evidence")).toHaveLength(2);
+  });
+
   it("offers Retry when the citizen's evidence cannot load", async () => {
     installFakeApi({
       "GET work-orders": () => ({ items: [order()] }),
-      "GET work-orders/w1/evidence": () =>
-        new Response("{}", { status: 503 }),
+      "GET work-orders/w1/evidence": () => new Response("{}", { status: 503 }),
     });
     await renderWorkspace(<OfficerWorkspace />);
     await openOrder();
