@@ -1,3 +1,185 @@
+# Hacktober Hack Days
+
+## Project Documentation Template
+
+JanMaang project documentation for the flexible 15-day Hacktober Hack Days roadmap.
+Updated **25 October 2026**. This current overview takes precedence over the historical
+status notes in the original README, which is preserved below.
+
+## How to Use This Template
+
+Maintain Sections 1 to 6 as the project evolves. Keep daily progress and evidence in
+[development documentation](docs/development/), and prepare the demo video, slides,
+and final submission checklist before the deadline. No daily log or submission
+completion is implied by this overview.
+
+## Suggested 15-Day Roadmap
+
+| Phase | Days | Focus |
+|---|---|---|
+| Ideate | Day 1 to 3 | Team formation, problem selection, research, scope and planning |
+| Build | Day 4 to 10 | Core features, integrations and regular check-ins |
+| Refine | Day 11 to 13 | Bug fixes, UI polish, testing and documentation |
+| Deliver | Day 14 to 15 | Demo video, pitch and final submission |
+
+## 1. Project Overview
+
+| Field | Details |
+|---|---|
+| Project name | JanMaang |
+| Team name | TragicBytes |
+| Track / theme | Empowering Local Communities |
+| One-line pitch | A civic demand-to-budget platform that turns local reports into transparent, community-verified projects. |
+| Repository link | [HACKTOBER-by-SHEBUILDS](https://github.com/Arnav-Code-hub/HACKTOBER-by-SHEBUILDS) |
+| Live citizen app | [Firebase Hosting](https://hacktober-by-she-builds.web.app) |
+| Live staff dashboard | [Vercel](https://hacktober-by-shebuilds.vercel.app) |
+| Backend health | [Render API health](https://hacktober-api.onrender.com/health) |
+| Demo video link | Not published. |
+| Presentation / slides | Not published. |
+
+All three applications are deployed. The backend health check, dashboard page and
+citizen app bundle responded successfully; the deployed citizen bundle uses the
+hosted API. A complete report-to-verification journey on the hosted applications
+and hosted acceptance checks for all ten accounts remain pending. Render's free
+service can take time to wake after inactivity.
+
+## 2. Team Members and Roles
+
+| Name | Role | Responsibilities | Contact |
+|---|---|---|---|
+| Kanwaljeet Kaur | Team Lead | Planning and coordination | kanwal.kaur1310@gmail.com |
+| Arnav Aggarwal | Developer | Frontend and backend | arnav.1251130495@vit.edu |
+| Jagmeet Singh | Developer | UI / UX | jagmeetxsingh366@gmail.com |
+
+## 3. Problem Statement
+
+**The problem:** Local needs can be scattered across individual complaints, with
+limited visibility into which demands receive priority, how funding is recorded,
+who is responsible for execution, and whether the reported repair actually solves
+the original citizen's problem.
+
+**Who is affected:** Local communities, including rural communities, and the staff
+and partner organizations responsible for responding to their needs.
+
+**Why it matters:** Citizens need a visible way to raise problems and track the
+response. Departments need a shared record connecting demand, prioritisation,
+allocation, execution evidence and citizen feedback.
+
+**Existing solutions and their gaps:** Complaint portals, messaging channels and
+manual registers can capture issues, but the gap this prototype targets is a single
+traceable workflow from collective demand through explainable prioritisation and
+recorded funding to verification by the original reporter. This is the project's
+problem hypothesis, not a claim that every existing platform lacks these features.
+
+**Validation so far:** The team reports a five-person pilot; a formal pilot report
+and measured outcomes are not documented here. A separate recorded acceptance run
+verified fresh sign-ins and saved actions for all ten roles through local clients
+using real Firebase, Supabase and Cloudinary. It does not establish public adoption
+or independently measured community impact.
+
+## 4. Proposed Solution
+
+JanMaang collects local reports, groups related needs into shared demands, ranks
+eligible demands on five published factors, records funding and work orders, and
+closes a case only after the original reporter reviews the repair evidence and
+confirms the fix. A rejected attempt returns to correction with its review history.
+
+**Unique value:** One traceable path from an individual report to collective demand,
+explainable ranking, funding, officer execution and citizen verification. Demo data
+is identified as such; optional AI suggestions never decide status or funding.
+
+**Implemented prototype features:**
+
+- Citizen reporting with text, photos and location; voice input where supported by
+  the client platform and its microphone permissions.
+- Panchayat validation, location-based clustering, community support and five-factor
+  prioritisation with visible ranking inputs.
+- Recorded fund allocations, assigned work orders, progress and current-round
+  completion photos.
+- Original-reporter verification, correction rounds, audit entries, optimized
+  Cloudinary images, before/after evidence and signed evidence cards.
+- Public outcome statements, student teams, institute approval, submissions,
+  faculty reviews and Industry/CSR pledges.
+- District-scoped oversight and Super Admin role/organization management.
+- Demonstration views for community information, rankings and ledger presentation;
+  sample information must not be interpreted as measured public impact.
+- Optional Gemini report suggestions with manual reporting available when AI is
+  unavailable; real Gemini provider acceptance remains pending.
+
+**Out of scope for this prototype:** Real government deployment or adoption,
+real fund transfers or payments, production impact claims, and native Android/iOS
+packaging and store distribution. Allocations and CSR pledges are records only.
+
+## 5. Tech Stack and Architecture
+
+| Layer | Technology | Why we chose it |
+|---|---|---|
+| Citizen frontend | Flutter / Dart, Riverpod, GoRouter | Shared app UI, state management and navigation; currently delivered as Flutter web. |
+| Staff frontend | Next.js, React, TypeScript, shared workspace UI/tokens/contracts | Role-specific workspaces with shared styling and typed API integration. |
+| Backend | Python, FastAPI, Pydantic, SQLAlchemy, asyncpg, Alembic | Typed request validation, transactional workflows and versioned database migrations. |
+| Database | PostgreSQL hosted on Supabase | Relational integrity and transactions for reports, funding, review rounds and audit history. |
+| Authentication | Firebase Authentication and Firebase Admin SDK | Email/password identity and server-side token verification; application roles and scopes remain in PostgreSQL. |
+| Media | Cloudinary signed uploads and delivery transformations | Completion evidence, optimized images, before/after views and generated evidence cards. |
+| Maps / optional AI | flutter_map with OpenStreetMap tiles; optional Gemini through google-genai | Manual map selection and optional report suggestions; AI is not required to complete reporting. |
+| Hosting / deployment | Render Free, Vercel Hobby, Firebase Hosting Spark | Host the API, staff dashboard and citizen app respectively within a zero-rupee prototype target, subject to free-tier limits. |
+| Tools | Git, GitHub Actions, pnpm, Flutter tooling, pytest, Ruff, mypy, import-linter, Vitest | Workspace builds, CI, static checks and automated verification. |
+
+**Architecture overview:** Both clients sign in with Firebase and call the same
+FastAPI service with Firebase ID tokens. The API validates identity, loads the
+user's role and district/organization scope from PostgreSQL, and enforces workflow
+permissions. Supabase hosts the database. Cloudinary stores evidence and serves
+signed image transformations. Optional Gemini suggestions are requested through
+the backend, keeping provider secrets out of the clients.
+
+```mermaid
+flowchart LR
+    Citizen[Flutter citizen app - Firebase Hosting] -->|ID token and API requests| API[FastAPI - Render]
+    Staff[Next.js staff dashboard - Vercel] -->|ID token and API requests| API
+    Citizen --> Auth[Firebase Authentication]
+    Staff --> Auth
+    API -->|Verify identity| Auth
+    API --> DB[(PostgreSQL - Supabase)]
+    API --> Media[Cloudinary evidence and signed delivery]
+    Citizen -->|Signed photo upload| Media
+    Staff -->|Signed photo upload| Media
+    API -. Optional suggestions .-> AI[Gemini]
+```
+
+**Data flow:** Citizen report and evidence -> Panchayat validation and clustering ->
+published ranking -> Department allocation and officer assignment -> Officer
+completion evidence -> original citizen's verdict -> verified closure or another
+correction round. Status changes and their audit entries are saved transactionally.
+
+## 6. Feature Tracker
+
+Feature owners below are technical ownership assignments from the supplied team
+roles, not a claim of individual commit authorship.
+
+| Feature | Owner | Priority | Status | Notes |
+|---|---|---|---|---|
+| Citizen reports, photos and map selection | Arnav Aggarwal | High | Implemented; local acceptance passed | Hosted report submission still needs acceptance. |
+| Validation, clustering and prioritisation | Arnav Aggarwal | High | Implemented; local acceptance passed | Demo inputs and published factors remain visible. |
+| Funding, work orders and officer evidence | Arnav Aggarwal | High | Implemented; local acceptance passed | Recorded allocations only; no money movement. |
+| Citizen verification and evidence cards | Arnav Aggarwal | High | Implemented; real-provider local checks passed | Hosted report-to-verification journey pending. |
+| Teams, submissions, approvals, reviews and CSR | Arnav Aggarwal | High | Implemented; local acceptance passed | Persisted actions checked after refresh. |
+| Authentication and scoped administration | Arnav Aggarwal | High | Implemented; ten-role local acceptance passed | All ten hosted accounts still need acceptance. |
+| Citizen and staff interface design | Jagmeet Singh | High | Implemented; refinement ongoing | Accessibility, responsive layout and presentation polish remain review items. |
+| Three application deployments | Arnav Aggarwal | High | Deployed | Render API, Vercel staff dashboard and Firebase citizen web app; hosted integration acceptance pending. |
+| Optional Gemini suggestions | Arnav Aggarwal | Low | Implemented; provider validation pending | Manual reporting works without AI credentials. |
+| Demo video, slides and final submission | Kanwaljeet Kaur with the team | High | Pending | Links will be added when published. |
+
+Acceptance details: [ten-account live acceptance](docs/development/ten-account-live-acceptance-2026-10-25.md)
+and [local report-to-verification journey](docs/development/live-journey-2026-10-25.md).
+Backend rules and phase scope: [implementation plan](docs/development/backend-plan.md).
+
+---
+
+## Original README (preserved)
+
+The following content is retained unchanged. Its older deployment and provider
+status notes describe an earlier project state; use the documentation above for
+current deployment status and verification limits.
+
 # JanMaang
 
 A civic demand-to-budget platform. A citizen reports a local need in their own
