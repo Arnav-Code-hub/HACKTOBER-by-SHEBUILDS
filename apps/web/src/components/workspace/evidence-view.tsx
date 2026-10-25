@@ -33,14 +33,24 @@ export function EvidenceView({
       </div>
       <div className="jm-evidence-grid">
         <figure>
-          <img
-            src={evidence.before.url}
-            alt={`Reported problem, ${evidence.report_code}`}
-          />
-          <figcaption>
-            <strong>Before</strong> · reported{" "}
-            {date.format(new Date(evidence.before.uploaded_at))}
-          </figcaption>
+          {evidence.before ? (
+            <>
+              <img
+                src={evidence.before.url}
+                alt={`Reported problem, ${evidence.report_code}`}
+              />
+              <figcaption>
+                <strong>Before</strong> · reported{" "}
+                {date.format(new Date(evidence.before.uploaded_at))}
+              </figcaption>
+            </>
+          ) : (
+            // Report photos are optional; never show a stand-in image.
+            <div className="jm-empty">
+              <span className="jm-badge">Before</span>
+              <p>The citizen did not attach a photo to this report.</p>
+            </div>
+          )}
         </figure>
         <figure>
           {evidence.after ? (
@@ -74,7 +84,7 @@ export function EvidenceView({
             alt={`Evidence card for ${evidence.report_code}`}
           />
           <figcaption className="jm-small">
-            Generated evidence card ·{" "}
+            Generated evidence card · status when generated ·{" "}
             <a href={evidence.card_url}>Open full size</a>
           </figcaption>
         </figure>

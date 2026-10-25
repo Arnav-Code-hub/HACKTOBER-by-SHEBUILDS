@@ -224,7 +224,23 @@ Work-order evidence, `GET /api/v1/work-orders/{id}/evidence`:
 }
 ```
 
-`after` and `card_url` may be `null`. All URLs are HTTPS, server-signed Cloudinary delivery URLs.
+`before` is the anchor report's earliest photo and is `null` when the citizen
+attached none (report photos are optional). `after` is the earliest completion
+photo of the round given in `after_round`, chosen by the shared selection rule;
+it is `null` before completion. `card_url` is null until there is selected
+completion evidence; otherwise it is a server-built Cloudinary image/text
+composition. Missing original evidence is labelled "No original photo attached"
+on the card, never replaced with a completion photo. `verdict_label` contains
+the same trusted wording used by the card. All URLs are HTTPS, server-signed
+Cloudinary delivery URLs. Comparison photos use equal 640x480 padded canvases;
+thumbnail/detail variants retain bounded dimensions with automatic format and quality.
+
+Cards are shareable **snapshots of the saved status when their URL was
+generated**. Reopening the application fetches the current status and a new
+signed composition. An earlier shared card remains an earlier snapshot; it is
+not a live status page. Strict transformations must be enabled in Cloudinary
+before relying on delivery-side rejection of edited transformations. These
+URLs are for approved public demonstration evidence, not confidential media.
 
 Staff uploads use the same `media/signature` → Cloudinary → `media/complete` flow as the citizen app, with `kind: "completion"` for officer evidence.
 
@@ -248,13 +264,13 @@ access. Writes marked † carry an `Idempotency-Key` header.
 | `POST clusters/{id}/support` | — | `{"id","supporter_count"}` — citizen only, own district. Repeated requests preserve one support row; reporters and explicit supporters are counted once in the same total used by ranking |
 | `PATCH clusters/{id}/inputs` | `{"infrastructure_gap":0-100,"equity_index":0-100}` | `{"id"}` |
 | `GET users?role=officer` | — | items `{"id","display_name","email"}` — assignable officers in the caller's **district and department** |
-| `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` | `{"allocation_id","work_order_id"}`. Only the department responsible for the cluster's category in that district may fund it (403 otherwise). The officer must be in the work order's district **and** department (422 otherwise). Exact retry with the same key → the original response. Any other request for an already-funded cluster → **409** |
+| `POST clusters/{id}/fund` † | `{"amount_paise","officer_id","notes"?}` — `amount_paise` a positive integer, `notes` become the officer's instructions | **201** `{"allocation_id","work_order_id"}`. Only the department responsible for the cluster's category in that district may fund it (403 otherwise). The officer must be in the work order's district **and** department (422 otherwise). Exact retry with the same key → the original response. Any other request for an already-funded cluster → **409** |
 | `GET statements?status=` | — | items `{"id","title","body","status":"draft\|published","cluster_id","published_at"}`. **Read access:** student, faculty, institute, industry, gov admin and super admin see **published** statements only; a department sees published statements plus **its own drafts**. Drafts are never visible outside the owning department |
 | `POST statements` † | `{"title","body","cluster_id"?}` | statement — department only, owned by the caller's department |
 | `POST statements/{id}/publish` | — | statement — owning department only; publishing twice returns the published statement |
 | `GET work-orders?mine=true` | — | items `{"id","cluster_id","report_code","title","status","round","location_label","instructions","notes","allocated_paise","assigned_at"}` |
-| `PATCH work-orders/{id}` | `{"notes":"…"}` | `{"id","status"}`; the first update moves `funded → in_progress` |
-| `POST work-orders/{id}/complete` † | `{"media_ids":[…]}` (the caller's own `completion` media) | `{"id","status":"awaiting_verification"}`. Only from `in_progress`. The attached media are stored with the work order's **current round**; earlier rounds' photos are kept, never overwritten |
+| `PATCH work-orders/{id}` | `{"notes":"…"}` | `{"id","status"}`; the first update moves `funded → in_progress` only the assigned officer (404 otherwise); after completion is submitted, 409 |
+| `POST work-orders/{id}/complete` † | `{"media_ids":[…],"expected_round":n}` (the caller's own `completion` media; `n` is the work order's `round` as shown) | `{"id","status":"awaiting_verification"}`. Only from `in_progress`. **409** if `expected_round` is not the current round (the citizen returned the work since the page loaded). The attached media are stored with the work order's **current round**; earlier rounds' photos are kept, never overwritten |
 | `GET work-orders/{id}/evidence` | — | evidence (above), for **every** assigned order, open ones included. `after` is chosen deliberately by round: while `awaiting_verification` or `citizen_verified`, the **current** round's completion; while `in_progress` on round > 1, the **previous** round's (returned) completion, which the officer page labels "Previous completion · returned by the citizen"; otherwise `null`. `after_round` (int or null) states which round `after` belongs to |
 
 `round` starts at 1 and increases each time the reporter answers "not fixed".
@@ -290,9 +306,27 @@ Scope is the API's: `mine=true` is the caller's own records and
 | `POST statements/{id}/sponsorships` † | `{"amount_paise"}` | sponsorship |
 | `GET admin/summary` | — | `{"district_name","reports_by_status":{status:count},"cluster_count","work_orders_by_status":{status:count},"allocated_paise","pledged_paise"}` |
 | `GET admin/audit?limit=50` | — | items `{"id","at","actor_name","actor_role","action","entity_type","entity_id","reason"}`, newest first. Each event stores its own `district_id` (the district of the affected record, nullable for platform-wide events); a gov admin sees events for their district, a super admin sees all. Scope never depends on the actor's current organisation |
-| `GET admin/users` | — (super admin) | items `{"id","display_name","email","role","district_id","department_id","institute_id"}` |
+| `GET admin/users` | — (super admin) | items `{"id","display_name","email","role","district_id","department_id","institute_id","organization_id"}` |
 | `GET organizations` | — (super admin) | items `{"id","type":"district\|department\|institute\|industry","name"}` |
-| `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction. **403 when `{id}` is the caller**: nobody changes their own role or scope (the web client also refuses) |
+| `PATCH admin/users/{id}` | `{"role","district_id","department_id","institute_id","organization_id"?,"reason"}` — `null` clears a scope | admin user; the audit event is written in the same transaction. **403 when `{id}` is the caller**: nobody changes their own role or scope (the web client also refuses). **409 when the user is an officer with open work orders** (`funded`, `in_progress` or `awaiting_verification`) and the change would remove their access to them |
+
+For administration, `organization_id` is required when assigning the industry
+role; it identifies an active industry organization in the chosen district.
+Department/officer roles require `department_id`; student/faculty/institute
+roles require `institute_id`; every role except super admin requires a district.
+Scopes irrelevant to the new role are cleared. Invalid scope is 422, missing
+users are 404, and self-change is 403. A district move writes an affected-scope
+audit event in each of the old and new district. An unchanged PATCH returns the
+saved profile without another audit event. The organization list includes only
+active entries. Another user's browser may need a fresh sign-in to update its
+cached profile after an administrator changes its role.
+
+Student lists require `mine=true`; faculty/institute lists require
+`institute=me`. CSR lists require `mine=true` and show the caller's own pledges.
+Partner writes cannot target unpublished or other-district statements. Review
+and pledge creation return 201; retries with the original key return that same
+response. Fresh-key duplicate reviews return 409. Team approval is repeatable
+without duplicate approval events. Audit limits are 1–200, default 50.
 
 Changes made by one role reach another role's open page through its
 Refresh buttons or when that window regains focus; the API needs no push
@@ -343,8 +377,10 @@ completion evidence or is awaiting verification:
   "category": "water",
   "status": "awaiting_verification",
   "round": 1,
+  "after_round": 1,
   "can_verify": true,
   "blocked_reason": null,
+  "verdict_label": "Awaiting citizen verification",
   "before": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-11T10:00:00Z"},
   "after": {"url": "https://res.cloudinary.com/...", "uploaded_at": "2026-10-24T10:00:00Z"},
   "card_url": "https://res.cloudinary.com/..."
@@ -353,8 +389,14 @@ completion evidence or is awaiting verification:
 
 `can_verify` is true only for the original reporter while the work order is
 `awaiting_verification`; otherwise `blocked_reason` is a short sentence the
-citizen sees. `after` and `card_url` may be null. The app shows the UI hint;
-the API enforces it on the write below.
+citizen sees. `before` may be null because report photos are optional. The
+verification route is 404 until completion evidence exists. During correction,
+`round` is the new work round while `after_round` is the returned earlier
+attempt; `can_verify` is false. The Flutter view labels that photo "Returned
+attempt" and does not claim a new completion has been submitted. A reporter of
+a non-anchor member report can review the evidence through their own report
+but cannot verify the cluster; other citizens receive 404 for the report read.
+The app shows the UI hint; the API enforces it on the write below.
 
 `POST /api/v1/work-orders/{id}/verify` with `Idempotency-Key:
 verify-{work_order_id}-{round}`:
@@ -365,11 +407,17 @@ verify-{work_order_id}-{round}`:
 
 `expected_round` is the round whose evidence the citizen reviewed (the
 `round` from the verification view). In one transaction the API checks, in
-order: the caller is the original reporter (else 403); the work order is
+order: the caller has a report in this cluster (else 404, as for the
+verification view); the caller is the original reporter (else 403); the work order is
 `awaiting_verification` **and** its current round equals `expected_round`
 (else **409** — the evidence changed, or a verdict was already recorded);
 then records the verdict and its audit event. The key identifies the request
 for retries; it is not the round check.
+
+An exact retry with the same user, key, work-order ID and normalized payload
+returns the saved 200 response, even if the original verdict advanced the
+round. A fresh stale-round request gets 409 and writes nothing. Reusing a key
+with a different verdict, comment, round or work-order ID also gets 409.
 
 `comment` is optional (≤ 500 characters). `true` → `citizen_verified`;
 `false` → `in_progress` with `round` + 1 and **no new allocation**. On 409 the

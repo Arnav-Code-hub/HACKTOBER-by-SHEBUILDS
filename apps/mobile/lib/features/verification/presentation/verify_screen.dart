@@ -102,7 +102,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             ],
           ),
         ),
-        if (request.round > 1) ...<Widget>[
+        if (request.round > 1 && request.canVerify) ...<Widget>[
           const SizedBox(height: Insets.md),
           _Note(
             icon: Icons.replay,
@@ -120,7 +120,9 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
               child: _EvidenceColumn(
                 label: 'BEFORE',
                 photoUrl: request.beforePhotoUrl,
-                caption: request.reportedAgo.isEmpty
+                caption: request.beforePhotoUrl == null
+                    ? 'No original photo attached'
+                    : request.reportedAgo.isEmpty
                     ? 'Your report'
                     : 'Reported ${request.reportedAgo}',
                 semanticLabel: 'Your original photo of the problem',
@@ -129,10 +131,17 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             const SizedBox(width: Insets.md),
             Expanded(
               child: _EvidenceColumn(
-                label: 'AFTER',
+                label:
+                    request.afterRound != null &&
+                        request.afterRound! < request.round
+                    ? 'RETURNED ATTEMPT'
+                    : 'AFTER',
                 photoUrl: request.afterPhotoUrl,
                 caption: request.afterPhotoUrl == null
                     ? 'No completion photo'
+                    : request.afterRound != null &&
+                          request.afterRound! < request.round
+                    ? 'Round ${request.afterRound} · returned for correction'
                     : 'Officer photo · ${request.completedAgo}',
                 semanticLabel: "The officer's completion photo",
               ),

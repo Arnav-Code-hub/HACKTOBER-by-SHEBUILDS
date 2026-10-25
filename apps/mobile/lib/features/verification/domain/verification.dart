@@ -95,6 +95,7 @@ class VerificationRequest {
     this.completedAgo = '',
     this.evidenceCardUrl,
     this.round = 1,
+    this.afterRound,
     this.canVerify = true,
     this.blockedReason,
   });
@@ -120,6 +121,9 @@ class VerificationRequest {
 
   /// Verification round; above 1 after an earlier "not fixed" verdict.
   final int round;
+
+  /// Round of the displayed completion; it can be the returned previous one.
+  final int? afterRound;
 
   /// Whether this citizen may record a verdict now. Only the original
   /// reporter can, and only while the work awaits verification.

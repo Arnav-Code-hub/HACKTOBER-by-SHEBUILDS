@@ -97,6 +97,13 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
   // citizen's photo before photographing the completed work.
   const evidence = useWorkOrderEvidence(order.id, true);
   const returned = order.round > 1 && order.status === "in_progress";
+  // The caption describes the photo the evidence response chose, so it reads
+  // that response: the order list loads separately and can be a refresh behind.
+  const shown = evidence.data;
+  const afterLabel =
+    shown?.status === "in_progress" && shown.after_round
+      ? `Round ${shown.after_round} · returned by the citizen`
+      : "After";
 
   async function refresh() {
     await Promise.all([
@@ -140,9 +147,7 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
       {evidence.data ? (
         <EvidenceView
           evidence={evidence.data}
-          afterLabel={
-            returned ? "Previous completion · returned by the citizen" : "After"
-          }
+          afterLabel={afterLabel}
         />
       ) : evidence.isLoading ? (
         <section className="jm-panel">
@@ -224,6 +229,7 @@ function WorkOrderPanel({ order }: { order: WorkOrder }) {
                 api,
                 order.id,
                 photos.map((photo) => photo.id),
+                order.round,
                 idempotencyKey,
               );
               await refresh();

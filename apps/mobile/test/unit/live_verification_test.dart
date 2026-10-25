@@ -69,6 +69,40 @@ void main() {
       expect(request.evidenceCardUrl, isNull);
     });
 
+    test('allows a report without an original photo', () {
+      final request = verificationRequestFromJson('r1', <String, Object?>{
+        ...verificationJson(),
+        'before': null,
+        'after_round': 2,
+      });
+      expect(request.beforePhotoUrl, isNull);
+      expect(request.reportedAgo, isEmpty);
+      expect(request.afterRound, 2);
+      expect(request.canVerify, isTrue);
+    });
+
+    test('keeps the returned attempt distinct from the current round', () {
+      final request = verificationRequestFromJson('r1', <String, Object?>{
+        ...verificationJson(),
+        'can_verify': false,
+        'after_round': 1,
+        'blocked_reason': 'Wait for new completion evidence.',
+      });
+      expect(request.round, 2);
+      expect(request.afterRound, 1);
+      expect(request.canVerify, isFalse);
+    });
+
+    test('refuses a photo attributed to a future round', () {
+      expect(
+        () => verificationRequestFromJson('r1', <String, Object?>{
+          ...verificationJson(),
+          'after_round': 3,
+        }),
+        throwsA(isA<ServerFailure>()),
+      );
+    });
+
     test('explains why a citizen cannot verify', () {
       final request = verificationRequestFromJson('r1', <String, Object?>{
         ...verificationJson(),

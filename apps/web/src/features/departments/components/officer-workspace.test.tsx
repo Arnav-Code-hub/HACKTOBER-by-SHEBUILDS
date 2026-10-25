@@ -45,12 +45,15 @@ const openEvidence = {
   card_url: null,
 };
 
+/** Round 1's completion, returned by the citizen; round 2 is open. */
 const evidence = {
   report_code: "YDG-WTR-0001",
   status: "in_progress",
   before: { url: media("before").url, uploaded_at: "2026-10-20T08:00:00Z" },
   after: { url: media("after").url, uploaded_at: "2026-10-24T08:00:00Z" },
+  after_round: 1,
   card_url: null,
+  verdict_label: "Round 1 · returned for correction",
 };
 
 async function openOrder() {
@@ -105,7 +108,7 @@ describe("Officer workspace", () => {
     await act(async () => fireEvent.click(screen.getByText("Confirm")));
 
     const [complete] = api.to("POST", "work-orders/w1/complete");
-    expect(complete!.body).toEqual({ media_ids: ["after"] });
+    expect(complete!.body).toEqual({ media_ids: ["after"], expected_round: 1 });
     expect(complete!.headers["Idempotency-Key"]).toBeTruthy();
     // The Firebase token went to the API, never to Cloudinary.
     const [upload] = api.to("POST", CLOUDINARY);
@@ -147,6 +150,46 @@ describe("Officer workspace", () => {
         screen.getByAltText("Completion evidence, YDG-WTR-0001"),
       ).toBeTruthy(),
     );
+    expect(screen.getByText("Round 1 · returned by the citizen")).toBeTruthy();
+  });
+
+  it("captions the photo from the evidence, not a stale order list", async () => {
+    // The list still shows round 1 awaiting verification; the evidence has
+    // already moved on to the citizen's return.
+    installFakeApi({
+      "GET work-orders": () => ({
+        items: [order({ status: "awaiting_verification" })],
+      }),
+      "GET work-orders/w1/evidence": () => evidence,
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(() =>
+      expect(
+        screen.getByText("Round 1 · returned by the citizen"),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("captions a submitted round's photo as the current result", async () => {
+    installFakeApi({
+      // A stale list may still say the work was returned.
+      "GET work-orders": () => ({ items: [order({ round: 2 })] }),
+      "GET work-orders/w1/evidence": () => ({
+        ...evidence,
+        status: "awaiting_verification",
+        after_round: 2,
+        verdict_label: "Awaiting citizen verification",
+      }),
+    });
+    await renderWorkspace(<OfficerWorkspace />);
+    await openOrder();
+    await waitFor(() =>
+      expect(
+        screen.getByAltText("Completion evidence, YDG-WTR-0001"),
+      ).toBeTruthy(),
+    );
+    expect(screen.queryByText(/returned by the citizen/)).toBeNull();
   });
 
   it("shows the citizen's photo before the first completion", async () => {
@@ -165,20 +208,6 @@ describe("Officer workspace", () => {
       screen.getByText("Completion evidence has not been uploaded yet."),
     ).toBeTruthy();
     expect(api.to("GET", "work-orders/w1/evidence")).toHaveLength(1);
-  });
-
-  it("labels a returned attempt's photo as the previous completion", async () => {
-    installFakeApi({
-      "GET work-orders": () => ({ items: [order({ round: 2 })] }),
-      "GET work-orders/w1/evidence": () => evidence,
-    });
-    await renderWorkspace(<OfficerWorkspace />);
-    await openOrder();
-    await waitFor(() =>
-      expect(
-        screen.getByText("Previous completion · returned by the citizen"),
-      ).toBeTruthy(),
-    );
   });
 
   it("offers Retry when the citizen's evidence cannot load", async () => {

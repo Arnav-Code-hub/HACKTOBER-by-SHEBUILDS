@@ -24,7 +24,7 @@ from app.modules.departments.router import router as departments_router
 from app.modules.files.router import router as files_router
 from app.modules.funding.router import router as funding_router
 from app.modules.problem_statements.router import router as problem_statements_router
-from app.modules.problems.router import clusters_router
+from app.modules.problems.router import clusters_router, work_orders_router
 from app.modules.problems.router import router as problems_router
 from app.modules.projects.router import router as projects_router
 from app.modules.rbac.router import router as rbac_router
@@ -42,6 +42,7 @@ MODULE_ROUTERS = (
     departments_router,
     problems_router,
     clusters_router,
+    work_orders_router,
     problem_statements_router,
     projects_router,
     teams_router,

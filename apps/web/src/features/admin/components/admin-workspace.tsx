@@ -230,7 +230,7 @@ function UserAdministration() {
   const organizations = useOrganizations(true);
   const user = users.data?.items.find((u) => u.id === userId) ?? null;
   const orgs = organizations.data?.items ?? [];
-  const orgName = (id: string | null) =>
+  const orgName = (id: string | null | undefined) =>
     id ? (orgs.find((o) => o.id === id)?.name ?? id) : "—";
   const options = (type: Organization["type"]) =>
     orgs
@@ -262,7 +262,12 @@ function UserAdministration() {
           {
             header: "Scope",
             cell: (u: AdminUser) =>
-              [u.district_id, u.department_id, u.institute_id]
+              [
+                u.district_id,
+                u.department_id,
+                u.institute_id,
+                u.organization_id,
+              ]
                 .filter(Boolean)
                 .map(orgName)
                 .join(" · ") || "—",
@@ -287,7 +292,7 @@ function UserAdministration() {
           </section>
         ) : user ? (
           <ActionForm
-            key={`role-${user.id}-${user.role}-${user.district_id}-${user.department_id}-${user.institute_id}`}
+            key={`role-${user.id}-${user.role}-${user.district_id}-${user.department_id}-${user.institute_id}-${user.organization_id}`}
             title={`Change role or scope · ${user.display_name || user.email || user.id}`}
             fields={[
               {
@@ -323,6 +328,13 @@ function UserAdministration() {
                 options: options("institute"),
               },
               {
+                name: "organization_id",
+                label: "Industry organization",
+                kind: "select",
+                defaultValue: user.organization_id ?? "",
+                options: options("industry"),
+              },
+              {
                 name: "reason",
                 label: "Reason for the change",
                 kind: "textarea",
@@ -345,6 +357,7 @@ function UserAdministration() {
                 district_id: id("district_id"),
                 department_id: id("department_id"),
                 institute_id: id("institute_id"),
+                organization_id: id("organization_id"),
                 reason: String(values.reason),
               });
               await Promise.all([

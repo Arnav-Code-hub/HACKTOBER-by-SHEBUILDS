@@ -45,3 +45,12 @@ def test_missing_completion_never_uses_another_round_as_proof() -> None:
 def test_invalid_round_is_rejected() -> None:
     with pytest.raises(ValueError):
         select(before=BEFORE, status=Status.IN_PROGRESS, round_=0, completions={})
+
+
+def test_a_report_without_photos_has_no_before_but_keeps_the_after_rule() -> None:
+    # Report photos are optional; the selection never invents a before image.
+    selected = select(
+        before=None, status=Status.AWAITING_VERIFICATION, round_=1, completions={1: FIRST}
+    )
+    assert selected.before is None
+    assert (selected.after, selected.after_round) == (FIRST, 1)

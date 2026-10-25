@@ -1,11 +1,5 @@
-"""Business logic for teams. THE PUBLIC FACE of this module.
+"""Public partner operations backed by the cross-module transaction adapter."""
 
-Team formation, membership and invitations.
-
-# Module boundary: other modules may import this file and schemas.py.
-# They must NEVER import models.py or repository.py — see the import-linter
-# contract in pyproject.toml. That rule is what makes this module extractable
-# into its own service later without touching a single caller.
-"""
-
-# TODO(teams): service functions.
+from app.persistence.participation import approve_team as approve_team
+from app.persistence.participation import create_team as create_team
+from app.persistence.participation import list_teams as list_teams

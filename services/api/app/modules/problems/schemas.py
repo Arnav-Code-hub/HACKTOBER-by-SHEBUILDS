@@ -4,7 +4,15 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    field_validator,
+    model_validator,
+)
 
 from app.modules.files.schemas import MediaRead
 from app.shared.categories import Category
@@ -170,3 +178,93 @@ class IdentityAck(BaseModel):
 class SupportAck(BaseModel):
     id: UUID
     supporter_count: int = Field(ge=0)
+
+
+class FundCluster(BaseModel):
+    """A recorded allocation in integer paise; no payment is processed."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    amount_paise: StrictInt = Field(gt=0, le=10**13)
+    officer_id: UUID
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class FundResult(BaseModel):
+    allocation_id: UUID
+    work_order_id: UUID
+
+
+class WorkOrderRead(BaseModel):
+    id: UUID
+    cluster_id: UUID
+    report_code: str
+    title: str
+    status: ProblemStatus
+    round: int = Field(ge=1)
+    location_label: str | None
+    instructions: str | None
+    notes: str | None
+    allocated_paise: int = Field(ge=0)
+    assigned_at: datetime
+
+
+class WorkOrderList(BaseModel):
+    items: list[WorkOrderRead]
+
+
+class WorkOrderUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    notes: str = Field(min_length=1, max_length=1000)
+
+
+class CompleteWorkOrder(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    media_ids: list[UUID] = Field(min_length=1, max_length=3)
+    # The round the officer was shown; a request from before a citizen
+    # returned the work must not become the correction.
+    expected_round: int = Field(ge=1)
+
+    @field_validator("media_ids")
+    @classmethod
+    def distinct_media(cls, value: list[UUID]) -> list[UUID]:
+        if len(set(value)) != len(value):
+            raise ValueError("A photo can be attached only once")
+        return value
+
+
+class EvidencePhotoRead(BaseModel):
+    url: str
+    uploaded_at: datetime
+
+
+class EvidenceRead(BaseModel):
+    """Before/after evidence for one work order — for human review, not proof."""
+
+    report_code: str
+    status: ProblemStatus
+    before: EvidencePhotoRead | None
+    after: EvidencePhotoRead | None
+    after_round: int | None
+    card_url: str | None
+    verdict_label: str | None = None
+
+
+class VerificationRead(EvidenceRead):
+    work_order_id: UUID
+    title: str
+    category: Category
+    round: int = Field(ge=1)
+    can_verify: bool
+    blocked_reason: str | None
+
+
+class VerifyWorkOrder(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    verdict: StrictBool
+    expected_round: StrictInt = Field(ge=1, le=2147483647)
+    comment: str | None = Field(default=None, max_length=500)
+
+    @field_validator("comment")
+    @classmethod
+    def empty_comment(cls, value: str | None) -> str | None:
+        return value or None

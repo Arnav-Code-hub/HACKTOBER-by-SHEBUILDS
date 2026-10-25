@@ -212,3 +212,9 @@ async def create_report(
         return StoredResponse(201, dto.model_dump(mode="json"))
 
     return await SqlIdempotencyStore().execute(session, identity, action)
+
+
+async def cluster_scope(session: AsyncSession, cluster_id: UUID) -> tuple[UUID, str] | None:
+    """A cluster's district and category, for modules that link to it."""
+    cluster = await session.get(Cluster, cluster_id)
+    return None if cluster is None else (cluster.district_id, cluster.category)

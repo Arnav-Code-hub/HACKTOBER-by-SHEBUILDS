@@ -1,14 +1,26 @@
-"""Pydantic request/response models for teams.
+"""Team contracts shared by the student and institute workspaces."""
 
-Public: these are what generate the OpenAPI spec, and from it the
-TypeScript client and Dart models in packages/contracts.
-"""
+from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
-
-class TeamsBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+from pydantic import BaseModel, ConfigDict, Field
 
 
-# TODO(teams): Create / Update / Read schemas.
+class TeamCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=200)
+    statement_id: UUID
+
+
+class TeamRead(BaseModel):
+    id: UUID
+    name: str
+    statement_id: UUID
+    statement_title: str
+    institute_approved: bool
+    member_count: int
+    created_at: datetime
+
+
+class TeamList(BaseModel):
+    items: list[TeamRead]

@@ -7,12 +7,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.errors import PermissionDeniedError
 from app.core.security import Principal, get_current_principal
 from app.integrations.cloudinary import MediaProvider, get_media_provider
-from app.modules.problems import clusters, service
+from app.modules.problems import clusters, service, verification, work_orders
 from app.modules.problems.schemas import (
     AssignCluster,
     ClusterSuggestions,
+    CompleteWorkOrder,
+    EvidenceRead,
+    FundCluster,
+    FundResult,
     IdentityAck,
     RankedClusters,
     RankingInputs,
@@ -22,10 +27,17 @@ from app.modules.problems.schemas import (
     StatusAck,
     SupportAck,
     ValidateReport,
+    VerificationRead,
+    VerifyWorkOrder,
+    WorkOrderList,
+    WorkOrderUpdate,
 )
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 clusters_router = APIRouter(prefix="/clusters", tags=["Clusters"])
+work_orders_router = APIRouter(prefix="/work-orders", tags=["Work orders"])
+
+IdempotencyKey = Header(alias="Idempotency-Key", min_length=1, max_length=200, pattern=r"\S")
 
 
 @router.post("", response_model=ReportRead, status_code=201)
@@ -119,3 +131,80 @@ async def support(
     session: AsyncSession = Depends(get_db, scope="function"),
 ) -> SupportAck:
     return await clusters.support_cluster(session, principal, cluster_id)
+
+
+@clusters_router.post("/{cluster_id}/fund", response_model=FundResult, status_code=201)
+async def fund(
+    cluster_id: UUID,
+    body: FundCluster,
+    key: str = IdempotencyKey,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> JSONResponse:
+    result = await work_orders.fund_cluster(session, principal, cluster_id, body, key)
+    return JSONResponse(status_code=result.status_code, content=result.body)
+
+
+@work_orders_router.get("", response_model=WorkOrderList)
+async def my_work_orders(
+    mine: bool = True,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> WorkOrderList:
+    if not mine:
+        raise PermissionDeniedError("Officers can list only their own work orders.")
+    return await work_orders.my_work_orders(session, principal)
+
+
+@work_orders_router.patch("/{work_order_id}", response_model=StatusAck)
+async def update_work_order(
+    work_order_id: UUID,
+    body: WorkOrderUpdate,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> StatusAck:
+    return await work_orders.update_work_order(session, principal, work_order_id, body)
+
+
+@work_orders_router.post("/{work_order_id}/complete", response_model=StatusAck)
+async def complete_work_order(
+    work_order_id: UUID,
+    body: CompleteWorkOrder,
+    key: str = IdempotencyKey,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> JSONResponse:
+    result = await work_orders.complete_work_order(session, principal, work_order_id, body, key)
+    return JSONResponse(status_code=result.status_code, content=result.body)
+
+
+@work_orders_router.get("/{work_order_id}/evidence", response_model=EvidenceRead)
+async def work_order_evidence(
+    work_order_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+    provider: MediaProvider = Depends(get_media_provider),
+) -> EvidenceRead:
+    return await work_orders.work_order_evidence(session, principal, work_order_id, provider)
+
+
+@router.get("/{report_id}/verification", response_model=VerificationRead)
+async def report_verification(
+    report_id: UUID,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+    provider: MediaProvider = Depends(get_media_provider),
+) -> VerificationRead:
+    return await verification.verification_view(session, principal, report_id, provider)
+
+
+@work_orders_router.post("/{work_order_id}/verify", response_model=StatusAck)
+async def verify_work_order(
+    work_order_id: UUID,
+    body: VerifyWorkOrder,
+    key: str = IdempotencyKey,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> JSONResponse:
+    result = await verification.verify_work_order(session, principal, work_order_id, body, key)
+    return JSONResponse(status_code=result.status_code, content=result.body)

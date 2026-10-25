@@ -215,6 +215,22 @@ describe("ActionForm", () => {
 });
 
 describe("status and evidence display", () => {
+  it("says so when the citizen attached no photo, instead of a stand-in", () => {
+    render(
+      <EvidenceView
+        evidence={{
+          report_code: "JM-7",
+          status: "in_progress",
+          before: null,
+          after: null,
+          card_url: null,
+        }}
+      />,
+    );
+    expect(screen.getByText(/did not attach a photo/)).toBeTruthy();
+    expect(document.querySelector("img")).toBeNull();
+  });
+
   it("labels every agreed status, with verified as Panchayat validation", () => {
     for (const status of REPORT_STATUSES)
       expect(STATUS_DISPLAY[status]).toBeTruthy();

@@ -326,6 +326,11 @@ class SqlTransitionStore:
                     if snapshot.status_changed_at
                     else None,
                     **({"round": after_round} if after_round is not None else {}),
+                    **(
+                        {"verdict": snapshot.status == Status.CITIZEN_VERIFIED}
+                        if from_ == Status.AWAITING_VERIFICATION
+                        else {}
+                    ),
                     **({"cluster_id": str(cluster_id)} if cluster_id is not None else {}),
                 },
                 reason=reason,

@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from app.core.errors import UpstreamError
+from app.core.evidence import EvidenceCard
 
 
 class TokenVerifier:
@@ -20,6 +21,7 @@ class MediaProvider:
         self.assets: dict[str, dict[str, Any]] = {}
         self.fail = False
         self.calls = 0
+        self.cards: list[EvidenceCard] = []
 
     def authorize(self, public_id: str, timestamp: int) -> tuple[str, dict[str, str]]:
         return "https://api.cloudinary.com/v1_1/test/image/upload", {
@@ -43,6 +45,16 @@ class MediaProvider:
     def delivery(self, public_id: str, version: int, *, thumbnail: bool) -> str:
         variant = "thumb" if thumbnail else "detail"
         return f"https://res.cloudinary.com/test/image/upload/{variant}/v{version}/{public_id}"
+
+    def panel(self, public_id: str, version: int) -> str:
+        return f"https://res.cloudinary.com/test/image/upload/panel/v{version}/{public_id}"
+
+    def evidence_card(self, card: EvidenceCard) -> str:
+        import hashlib
+
+        self.cards.append(card)
+        key = hashlib.sha256(repr(card).encode()).hexdigest()
+        return f"https://res.cloudinary.com/test/image/upload/card/{key}"
 
     def uploaded(self, expected_id: str, **overrides: Any) -> None:
         self.assets[expected_id] = {

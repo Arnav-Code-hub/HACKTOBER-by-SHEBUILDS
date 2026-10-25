@@ -65,11 +65,17 @@ export type ScoreFactor = z.infer<typeof scoreFactorSchema>;
 export const evidenceSchema = z.object({
   report_code: z.string().min(1),
   status: reportStatusSchema,
-  before: z.object({ url: httpsUrl, uploaded_at: z.string().datetime() }),
+  // Null when the citizen attached no photo; report photos are optional.
+  before: z
+    .object({ url: httpsUrl, uploaded_at: z.string().datetime() })
+    .nullable(),
   after: z
     .object({ url: httpsUrl, uploaded_at: z.string().datetime() })
     .nullable(),
+  /** Which round `after` belongs to; earlier rounds were returned. */
+  after_round: z.number().int().min(1).nullable().optional(),
   card_url: httpsUrl.nullable(),
+  verdict_label: z.string().nullable().optional(),
 });
 export type Evidence = z.infer<typeof evidenceSchema>;
 

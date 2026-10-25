@@ -25,3 +25,13 @@ class CurrentUser(UserProfile):
     """`GET /users/me`: the profile plus its district's display name."""
 
     district_name: str | None
+
+
+class OfficerSummary(BaseModel):
+    id: UUID
+    display_name: str | None
+    email: str | None
+
+
+class OfficerList(BaseModel):
+    items: list[OfficerSummary]

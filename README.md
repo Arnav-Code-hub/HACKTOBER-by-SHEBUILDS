@@ -18,8 +18,8 @@ data; nothing claims real government adoption, payments or measured impact.
 |---|---|
 | Citizen app (Flutter web) | Report with photos, track, verify a repair — wired to the live API contract; also runs in a labelled demo mode |
 | Staff web app (Next.js) | Panchayat, Department, Officer, Student, Institute, Faculty, Industry/CSR and admin workspaces — wired to the live API contract |
-| API — Phases 0–3 | Schema and migrations, seed data, Firebase sign-in, Cloudinary uploads, citizen reports, Panchayat validation, clustering, support and ranking |
-| API — Phases 4–8 | Funding and work orders, citizen verification and evidence cards, partner and admin endpoints, AI suggestions, deployment — **not built yet** |
+| API — Phases 0–6 | Schema and migrations, seed data, Firebase verification, Cloudinary uploads, citizen reports, validation, clustering, ranking, funding, work orders, statements, citizen verdicts, signed evidence cards, partner teams/submissions/reviews, CSR pledges and scoped administration — implemented locally; real-provider checks pending |
+| API — Phases 7–8 | Optional AI suggestions and final hosted integration — **pending** |
 | Hosting | Not deployed. Needs a Firebase project, Cloudinary, Supabase and Render (see the plan) |
 
 The build order, rules and tests for each phase are in
@@ -222,7 +222,7 @@ gitleaks in CI. See [SECURITY.md](SECURITY.md).
 |---|---|
 | [docs/development/backend-plan.md](docs/development/backend-plan.md) | Phase-by-phase backend plan, rules and tests |
 | [docs/api/day1-frontend-contract.md](docs/api/day1-frontend-contract.md) | Every endpoint and response shape both clients use |
-| [docs/development/backend-phase0.md](docs/development/backend-phase0.md) … [phase3](docs/development/backend-phase3.md) | What each built phase delivered, and how to run it |
+| [docs/development/backend-phase0.md](docs/development/backend-phase0.md) … [phase4](docs/development/backend-phase4.md) | What each built phase delivered, and how to run it |
 | [apps/mobile](apps/mobile/README.md) | Citizen app — running it, demo mode, live configuration |
 | [docs/product/roles.md](docs/product/roles.md) | The roles and the permission matrix |
 | [docs/product/glossary.md](docs/product/glossary.md) | Demand vs Cluster vs Problem Statement vs Project |

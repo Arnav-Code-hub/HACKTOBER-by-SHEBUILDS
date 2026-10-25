@@ -118,7 +118,59 @@ describe("Admin workspace", () => {
       district_id: "d1",
       department_id: "dep1",
       institute_id: null,
+      organization_id: null,
       reason: "Promoted to department lead.",
+    });
+  });
+
+  it("sends the selected industry organization when assigning a CSR role", async () => {
+    signInAs("super_admin");
+    const user = {
+      id: "u9",
+      display_name: "Partner",
+      email: "partner@example.test",
+      role: "citizen",
+      district_id: "d1",
+      department_id: null,
+      institute_id: null,
+      organization_id: null,
+    };
+    const api = installFakeApi({
+      ...oversight,
+      "GET admin/users": () => ({ items: [user] }),
+      "GET organizations": () => ({
+        items: [
+          { id: "d1", type: "district", name: "Yadgir" },
+          { id: "csr1", type: "industry", name: "Demo sponsor" },
+        ],
+      }),
+      "PATCH admin/users/u9": () => ({
+        ...user,
+        role: "industry",
+        organization_id: "csr1",
+      }),
+    });
+    await renderWorkspace(<AdminWorkspace />);
+    await waitFor(() => expect(screen.getByText("Partner")).toBeTruthy());
+    fireEvent.click(screen.getByText("Open"));
+    fireEvent.change(screen.getByLabelText(/^Role/), {
+      target: { value: "industry" },
+    });
+    fireEvent.change(screen.getByLabelText(/Industry organization/), {
+      target: { value: "csr1" },
+    });
+    fireEvent.change(screen.getByLabelText(/Reason for the change/), {
+      target: { value: "CSR demo" },
+    });
+    fireEvent.click(screen.getByText("Apply change"));
+    await act(async () => fireEvent.click(screen.getByText("Confirm")));
+    expect(api.to("PATCH", "admin/users/u9")[0]!.body).toEqual({
+      role: "industry",
+      district_id: "d1",
+      department_id: null,
+      institute_id: null,
+      organization_id: "csr1",
+      reason: "CSR demo",
     });
   });
 
@@ -144,7 +196,9 @@ describe("Admin workspace", () => {
     await renderWorkspace(<AdminWorkspace />);
     await waitFor(() => expect(screen.getByText("(you)")).toBeTruthy());
     fireEvent.click(screen.getByText("Open"));
-    expect(screen.getByText(/cannot change your own role or scope/)).toBeTruthy();
+    expect(
+      screen.getByText(/cannot change your own role or scope/),
+    ).toBeTruthy();
     expect(screen.queryByText("Apply change")).toBeNull();
     expect(api.to("PATCH", "admin/users/staff-1")).toHaveLength(0);
   });

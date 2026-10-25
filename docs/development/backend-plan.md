@@ -31,10 +31,12 @@ or authentication. Only `app/shared/enums.py` (the agreed statuses) is real.
 Phases 0–5 are the demonstration journey. Every phase ships its own
 acceptance tests; Phase 8 reruns and integrates them.
 
-Implementation progress (24 October 2026): Phases 0–2 are implemented locally;
-the Phase 2 hosted/provider gate is pending account setup. Phase 3 implementation
-and its verification are recorded in [backend-phase3.md](backend-phase3.md).
-Continuing local development does not mark the hosted gate as passed.
+Implementation progress (25 October 2026): code for Phases 0–6 is implemented
+locally. Implementation notes are in [backend-phase4.md](backend-phase4.md),
+[backend-phase5.md](backend-phase5.md), and [backend-phase6.md](backend-phase6.md).
+The Phase 2 provider/deployment gate
+and Phase 5 hosted verification gate remain pending account setup. Continuing
+local development does not mark either hosted gate as passed.
 
 ## Cross-cutting rules (apply from Phase 0)
 
@@ -247,7 +249,7 @@ tie-break order.
 | `POST clusters/{id}/fund` † | caller's department must be responsible for the cluster's category in that district (403); officer's district and department must match (422); one transaction: idempotency row, conditional `prioritised → funded`, allocation, work order (round 1), audit |
 | `GET work-orders?mine=true` | assigned officer |
 | `PATCH work-orders/{id}` | assigned officer; first note `funded → in_progress` (conditional) |
-| `POST work-orders/{id}/complete` † | conditional from `in_progress`; caller's own completion media, 1–3, stamped with the **current round**; → `awaiting_verification` |
+| `POST work-orders/{id}/complete` † | conditional from `in_progress` and `expected_round` = current round (409 otherwise); caller's own completion media, 1–3, stamped with that round; → `awaiting_verification` |
 | `GET work-orders/{id}/evidence` | any status; `after` selected by round (current while awaiting / verified; previous while correcting on round > 1; else null) with `after_round` |
 | `GET statements` | partner roles: published only; department: published + own drafts |
 | `POST statements` †, `POST statements/{id}/publish` | owning department only |
@@ -273,9 +275,10 @@ and industry read published statements but never drafts.
 | Cloudinary | **Strict transformations** on |
 | Measurement | `scripts/measure_cloudinary.py` with a browser `Accept` header; results to Notion |
 
-**Client status:** the Flutter app already sends `expected_round` and handles
-the 409 (local change with tests, not yet on `test`); confirm the deployed
-Flutter build includes it before relying on the server-side check.
+**Client status:** Flutter sends `expected_round` and handles the 409. Phase 5
+also accepts null original photos and displays a returned attempt's
+`after_round` accurately. See [backend-phase5.md](backend-phase5.md) for local
+implementation, verification and the still-pending hosted exit gate.
 
 **Tests:** after a negative verdict, the endpoint, the card and the
 verification view all select the returned attempt's photo with the same

@@ -45,6 +45,7 @@ export const adminUserSchema = z.object({
   district_id: nullableId,
   department_id: nullableId,
   institute_id: nullableId,
+  organization_id: nullableId.optional(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 export const adminUserListSchema = listSchema(adminUserSchema);
@@ -62,6 +63,7 @@ export type RoleChange = {
   district_id: string | null;
   department_id: string | null;
   institute_id: string | null;
+  organization_id?: string | null;
   reason: string;
 };
 

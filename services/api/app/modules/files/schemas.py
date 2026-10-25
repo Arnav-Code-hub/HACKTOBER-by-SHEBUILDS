@@ -46,3 +46,13 @@ class VerifiedAsset(BaseModel):
     width: int = Field(gt=0)
     height: int = Field(gt=0)
     created_at: datetime
+
+
+class EvidencePhoto(BaseModel):
+    """One photo as evidence: a signed detail URL and when it was uploaded."""
+
+    id: UUID
+    public_id: str
+    version: int
+    url: str
+    uploaded_at: datetime

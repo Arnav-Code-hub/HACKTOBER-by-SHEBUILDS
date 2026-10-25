@@ -114,8 +114,12 @@ VerificationRequest _verificationRequest(
   if (round == null || round < 1 || category == null) {
     throw const ServerFailure('The API returned an invalid verification.');
   }
-  final before = _photo(data['before']);
+  final before = data['before'] == null ? null : _photo(data['before']);
   final after = data['after'] == null ? null : _photo(data['after']);
+  final afterRound = data.optionalInt('after_round');
+  if (afterRound != null && (afterRound < 1 || afterRound > round)) {
+    throw const ServerFailure('The API returned an invalid evidence round.');
+  }
 
   return VerificationRequest(
     demandId: demandId,
@@ -123,14 +127,15 @@ VerificationRequest _verificationRequest(
     reportCode: data.optionalString('report_code'),
     workOrderId: data.requiredString('work_order_id'),
     round: round,
+    afterRound: afterRound,
     question: switch (category) {
       DemandCategory.water => 'Is the water source working now?',
       DemandCategory.lighting => 'Are the lights working now?',
       DemandCategory.roads => 'Is the road repaired now?',
       _ => 'Has the problem been fixed?',
     },
-    beforePhotoUrl: before.url,
-    reportedAgo: Formatters.relative(before.at, now: now),
+    beforePhotoUrl: before?.url,
+    reportedAgo: before == null ? '' : Formatters.relative(before.at, now: now),
     afterPhotoUrl: after?.url,
     completedAgo: after == null ? '' : Formatters.relative(after.at, now: now),
     evidenceCardUrl: data.optionalHttpsUrl('card_url'),

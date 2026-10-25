@@ -95,6 +95,36 @@ Demand demand({required String reporterId, required bool awaiting}) => Demand(
 );
 
 void main() {
+  testWidgets('a returned attempt does not claim a new completion exists', (
+    tester,
+  ) async {
+    const request = VerificationRequest(
+      demandId: 'r1',
+      demandTitle: 'Handpump',
+      question: 'Is it fixed?',
+      workOrderId: 'w1',
+      round: 2,
+      afterRound: 1,
+      canVerify: false,
+      afterPhotoUrl: 'https://res.cloudinary.com/d/after.jpg',
+      blockedReason: 'Wait for new completion evidence.',
+    );
+    await pumpScreen(tester, const VerifyScreen(demandId: 'r1'), <Override>[
+      verificationRepositoryProvider.overrideWithValue(
+        FakeVerificationRepository(request),
+      ),
+    ]);
+    expect(find.text('RETURNED ATTEMPT'), findsOneWidget);
+    expect(find.text('Round 1 · returned for correction'), findsOneWidget);
+    expect(find.text('No original photo attached'), findsOneWidget);
+    expect(
+      find.textContaining('submitted new completion evidence'),
+      findsNothing,
+    );
+    expect(find.text('Yes, it is fixed'), findsNothing);
+    expect(find.text('No, still broken'), findsNothing);
+  });
+
   testWidgets(
     'shows before and after evidence, then records a confirmed verdict',
     (tester) async {

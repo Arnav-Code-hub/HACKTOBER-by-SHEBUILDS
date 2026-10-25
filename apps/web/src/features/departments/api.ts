@@ -39,16 +39,21 @@ export function updateWorkOrder(api: ApiClient, id: string, notes: string) {
   });
 }
 
-/** Attaches verified completion photos; the reporter is then asked to verify. */
+/**
+ * Attaches verified completion photos; the reporter is then asked to verify.
+ * `expectedRound` is the round on screen: if the citizen has returned the
+ * work since, the API refuses (409) rather than filing old photos as the fix.
+ */
 export function completeWorkOrder(
   api: ApiClient,
   id: string,
   mediaIds: string[],
+  expectedRound: number,
   idempotencyKey: string,
 ) {
   return api.request(`work-orders/${segment(id)}/complete`, {
     method: "POST",
-    body: { media_ids: mediaIds },
+    body: { media_ids: mediaIds, expected_round: expectedRound },
     idempotencyKey,
     schema: ack,
   });
