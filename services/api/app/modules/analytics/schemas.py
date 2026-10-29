@@ -7,34 +7,31 @@ TypeScript client and Dart models in packages/contracts.
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, NonNegativeInt
+
+from app.shared.enums import ProblemStatus
 
 
 class AnalyticsBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DistrictTransparency(AnalyticsBase):
-    district_name: str
-    report_count: int
-    cluster_count: int
-    active_cases: int
-    citizen_verified_cases: int
-    allocated_paise: int
-    last_updated: datetime | None
-
-
 class PublicTransparency(AnalyticsBase):
+    """Anonymous aggregate counts; complaints and grouped cases are distinct.
+
+    Until any live (non-demo) report exists, the totals describe the labelled
+    demonstration data and `sample_data` is true. Once live reports exist,
+    only live records are counted. Sample and live figures are never mixed.
+    """
+
+    report_count: NonNegativeInt
+    cluster_count: NonNegativeInt
+    active_cases: NonNegativeInt
+    citizen_verified_cases: NonNegativeInt
+    reports_by_status: dict[ProblemStatus, NonNegativeInt]
+    clusters_by_status: dict[ProblemStatus, NonNegativeInt]
+    sample_data: bool
     updated_at: datetime | None
-    demo_data_excluded: bool = True
-    report_count: int
-    cluster_count: int
-    active_cases: int
-    citizen_verified_cases: int
-    allocated_paise: int
-    reports_by_status: dict[str, int]
-    clusters_by_status: dict[str, int]
-    districts: list[DistrictTransparency]
 
 
 class StaffWorkload(AnalyticsBase):

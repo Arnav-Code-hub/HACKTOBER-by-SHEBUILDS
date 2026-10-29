@@ -463,7 +463,7 @@ Notifications are written in the same transaction as the change they describe, s
 
 | Endpoint | Body | Response / rules |
 |---|---|---|
-| `GET analytics/public` | — (**no sign-in**) | Aggregate totals only: report and cluster counts by status, active and citizen-verified cases, recorded allocations, per district. **Demo records are excluded** (`demo_data_excluded: true`); no reporter, title, photo or coordinate is published |
+| `GET analytics/public` | — (**no sign-in**) | `{"report_count","cluster_count","active_cases","citizen_verified_cases","reports_by_status","clusters_by_status","sample_data","updated_at"}`: aggregate totals only; a complaint takes its case's status, and both totals come from one snapshot. **Live records only once any exist; until then the labelled demonstration data is shown with `sample_data: true`** (the homepage labels it "Sample data"). Sample and live figures are never mixed. No reporter, title, photo or coordinate is published |
 | `GET analytics/workload` | — (department, gov admin, super admin) | Per active, non-demo officer in scope: open, funded, in-progress and awaiting-verification work orders and the oldest open assignment. Other roles 403. Not yet shown in either client |
 
 ## Integration gate

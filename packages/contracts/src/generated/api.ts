@@ -923,23 +923,6 @@ export interface components {
             /** District Name */
             district_name: string | null;
         };
-        /** DistrictTransparency */
-        DistrictTransparency: {
-            /** District Name */
-            district_name: string;
-            /** Report Count */
-            report_count: number;
-            /** Cluster Count */
-            cluster_count: number;
-            /** Active Cases */
-            active_cases: number;
-            /** Citizen Verified Cases */
-            citizen_verified_cases: number;
-            /** Allocated Paise */
-            allocated_paise: number;
-            /** Last Updated */
-            last_updated: string | null;
-        };
         /** EvidencePhotoRead */
         EvidencePhotoRead: {
             /** Url */
@@ -1163,15 +1146,15 @@ export interface components {
          * @enum {string}
          */
         ProblemStatus: "reported" | "verified" | "rejected" | "prioritised" | "funded" | "in_progress" | "awaiting_verification" | "citizen_verified";
-        /** PublicTransparency */
+        /**
+         * PublicTransparency
+         * @description Anonymous aggregate counts; complaints and grouped cases are distinct.
+         *
+         *     Until any live (non-demo) report exists, the totals describe the labelled
+         *     demonstration data and `sample_data` is true. Once live reports exist,
+         *     only live records are counted. Sample and live figures are never mixed.
+         */
         PublicTransparency: {
-            /** Updated At */
-            updated_at: string | null;
-            /**
-             * Demo Data Excluded
-             * @default true
-             */
-            demo_data_excluded: boolean;
             /** Report Count */
             report_count: number;
             /** Cluster Count */
@@ -1180,8 +1163,6 @@ export interface components {
             active_cases: number;
             /** Citizen Verified Cases */
             citizen_verified_cases: number;
-            /** Allocated Paise */
-            allocated_paise: number;
             /** Reports By Status */
             reports_by_status: {
                 [key: string]: number;
@@ -1190,8 +1171,10 @@ export interface components {
             clusters_by_status: {
                 [key: string]: number;
             };
-            /** Districts */
-            districts: components["schemas"]["DistrictTransparency"][];
+            /** Sample Data */
+            sample_data: boolean;
+            /** Updated At */
+            updated_at: string | null;
         };
         /** RankedCluster */
         RankedCluster: {

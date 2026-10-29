@@ -3020,57 +3020,6 @@
         "title": "CurrentUser",
         "description": "`GET /users/me`: the profile plus its district's display name."
       },
-      "DistrictTransparency": {
-        "properties": {
-          "district_name": {
-            "type": "string",
-            "title": "District Name"
-          },
-          "report_count": {
-            "type": "integer",
-            "title": "Report Count"
-          },
-          "cluster_count": {
-            "type": "integer",
-            "title": "Cluster Count"
-          },
-          "active_cases": {
-            "type": "integer",
-            "title": "Active Cases"
-          },
-          "citizen_verified_cases": {
-            "type": "integer",
-            "title": "Citizen Verified Cases"
-          },
-          "allocated_paise": {
-            "type": "integer",
-            "title": "Allocated Paise"
-          },
-          "last_updated": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Updated"
-          }
-        },
-        "type": "object",
-        "required": [
-          "district_name",
-          "report_count",
-          "cluster_count",
-          "active_cases",
-          "citizen_verified_cases",
-          "allocated_paise",
-          "last_updated"
-        ],
-        "title": "DistrictTransparency"
-      },
       "EvidencePhotoRead": {
         "properties": {
           "url": {
@@ -3600,6 +3549,52 @@
       },
       "PublicTransparency": {
         "properties": {
+          "report_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Report Count"
+          },
+          "cluster_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cluster Count"
+          },
+          "active_cases": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Active Cases"
+          },
+          "citizen_verified_cases": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Citizen Verified Cases"
+          },
+          "reports_by_status": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ProblemStatus"
+            },
+            "type": "object",
+            "title": "Reports By Status"
+          },
+          "clusters_by_status": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ProblemStatus"
+            },
+            "type": "object",
+            "title": "Clusters By Status"
+          },
+          "sample_data": {
+            "type": "boolean",
+            "title": "Sample Data"
+          },
           "updated_at": {
             "anyOf": [
               {
@@ -3611,67 +3606,21 @@
               }
             ],
             "title": "Updated At"
-          },
-          "demo_data_excluded": {
-            "type": "boolean",
-            "title": "Demo Data Excluded",
-            "default": true
-          },
-          "report_count": {
-            "type": "integer",
-            "title": "Report Count"
-          },
-          "cluster_count": {
-            "type": "integer",
-            "title": "Cluster Count"
-          },
-          "active_cases": {
-            "type": "integer",
-            "title": "Active Cases"
-          },
-          "citizen_verified_cases": {
-            "type": "integer",
-            "title": "Citizen Verified Cases"
-          },
-          "allocated_paise": {
-            "type": "integer",
-            "title": "Allocated Paise"
-          },
-          "reports_by_status": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Reports By Status"
-          },
-          "clusters_by_status": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Clusters By Status"
-          },
-          "districts": {
-            "items": {
-              "$ref": "#/components/schemas/DistrictTransparency"
-            },
-            "type": "array",
-            "title": "Districts"
           }
         },
         "type": "object",
         "required": [
-          "updated_at",
           "report_count",
           "cluster_count",
           "active_cases",
           "citizen_verified_cases",
-          "allocated_paise",
           "reports_by_status",
           "clusters_by_status",
-          "districts"
+          "sample_data",
+          "updated_at"
         ],
-        "title": "PublicTransparency"
+        "title": "PublicTransparency",
+        "description": "Anonymous aggregate counts; complaints and grouped cases are distinct.\n\nUntil any live (non-demo) report exists, the totals describe the labelled\ndemonstration data and `sample_data` is true. Once live reports exist,\nonly live records are counted. Sample and live figures are never mixed."
       },
       "RankedCluster": {
         "properties": {

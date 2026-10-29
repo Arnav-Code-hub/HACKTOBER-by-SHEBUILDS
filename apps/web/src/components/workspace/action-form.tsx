@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { ApiError, newIdempotencyKey } from "@/lib/api/client";
 import { rupeesToPaise } from "@/lib/money";
@@ -80,34 +80,66 @@ export function ActionForm({
   const [pending, setPending] = useState<FormValues | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [errorRevision, setErrorRevision] = useState(0);
   const [success, setSuccess] = useState<string | null>(null);
   const [key, setKey] = useState(newIdempotencyKey);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  const successRef = useRef<HTMLParagraphElement>(null);
+  const wasConfirming = useRef(false);
 
-  function parse(): FormValues {
+  useEffect(() => {
+    if (pending) confirmRef.current?.focus();
+    else if (wasConfirming.current) submitRef.current?.focus();
+    wasConfirming.current = pending !== null;
+  }, [pending]);
+  // Focus only after a submission, never on every edit to an invalid field.
+  useEffect(() => {
+    summaryRef.current?.focus();
+  }, [errorRevision]);
+  useEffect(() => {
+    if (success) successRef.current?.focus();
+  }, [success]);
+
+  function parse(): FormValues | null {
     const values: FormValues = {};
+    const errors: Record<string, string> = {};
     for (const field of fields) {
       const value = (raw[field.name] ?? "").trim();
-      if (!value) {
-        if (field.required) throw new RangeError(`${field.label} is required.`);
-        continue;
-      }
-      if (field.kind === "money") {
-        values[field.name] = rupeesToPaise(value);
-      } else if (field.kind === "number") {
-        const number = Number(value);
-        if (
-          !Number.isFinite(number) ||
-          (field.min !== undefined && number < field.min) ||
-          (field.max !== undefined && number > field.max)
-        ) {
-          throw new RangeError(
-            `${field.label} must be a number between ${field.min ?? "−∞"} and ${field.max ?? "∞"}.`,
-          );
+      try {
+        if (!value) {
+          if (field.required)
+            throw new RangeError(`${field.label} is required.`);
+          continue;
         }
-        values[field.name] = number;
-      } else {
-        values[field.name] = value;
+        if (field.kind === "money") {
+          values[field.name] = rupeesToPaise(value);
+        } else if (field.kind === "number") {
+          const number = Number(value);
+          if (
+            !Number.isFinite(number) ||
+            (field.min !== undefined && number < field.min) ||
+            (field.max !== undefined && number > field.max)
+          ) {
+            throw new RangeError(
+              `${field.label} must be a number between ${field.min ?? "−∞"} and ${field.max ?? "∞"}.`,
+            );
+          }
+          values[field.name] = number;
+        } else {
+          values[field.name] = value;
+        }
+      } catch (caught) {
+        errors[field.name] =
+          caught instanceof RangeError ? caught.message : "Check this field.";
       }
+    }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setErrorRevision((revision) => revision + 1);
+      return null;
     }
     return values;
   }
@@ -130,6 +162,7 @@ export function ActionForm({
           ? caught.message
           : "The action could not be completed. Retry or refresh.",
       );
+      setErrorRevision((revision) => revision + 1);
     } finally {
       setBusy(false);
     }
@@ -137,20 +170,16 @@ export function ActionForm({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || disabled || pending) return;
     setSuccess(null);
-    let values: FormValues;
-    try {
-      values = parse();
-    } catch (caught) {
-      setError(
-        caught instanceof RangeError ? caught.message : "Check the fields.",
-      );
-      return;
-    }
+    setError(null);
+    const values = parse();
+    if (!values) return;
+    // A check across fields, after each field is valid on its own.
     const problem = validate?.(values);
     if (problem) {
       setError(problem);
+      setErrorRevision((revision) => revision + 1);
       return;
     }
     if (confirm) {
@@ -166,15 +195,51 @@ export function ActionForm({
       <h2>{title}</h2>
       {description && <p className="jm-muted">{description}</p>}
       <form className="jm-form" onSubmit={submit} noValidate>
+        {(error || Object.keys(fieldErrors).length > 0) && (
+          <div
+            className="jm-form-error"
+            role="alert"
+            tabIndex={-1}
+            ref={summaryRef}
+          >
+            {error ? (
+              <p>{error}</p>
+            ) : (
+              <>
+                <p>Check the following fields:</p>
+                <ul>
+                  {Object.entries(fieldErrors).map(([name, message]) => (
+                    <li key={name}>
+                      <a
+                        href={`#${formId}-${name}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          document.getElementById(`${formId}-${name}`)?.focus();
+                        }}
+                      >
+                        {message}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
         {fields.map((field) => {
           const id = `${formId}-${field.name}`;
+          const fieldError = fieldErrors[field.name];
           const common = {
             id,
             name: field.name,
             value: raw[field.name] ?? "",
             disabled: busy || disabled || pending !== null,
             required: field.required,
-            "aria-describedby": field.hint ? `${id}-hint` : undefined,
+            "aria-invalid": fieldError ? true : undefined,
+            "aria-describedby":
+              [field.hint && `${id}-hint`, fieldError && `${id}-error`]
+                .filter(Boolean)
+                .join(" ") || undefined,
             onChange: (
               event: React.ChangeEvent<
                 HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -204,6 +269,7 @@ export function ActionForm({
               // Edited values are a different request, not a retry of the
               // failed one; reusing its key would be refused as a conflict.
               setKey(newIdempotencyKey());
+              setSuccess(null);
             },
           };
           return (
@@ -243,16 +309,21 @@ export function ActionForm({
                   {field.hint}
                 </p>
               )}
+              {fieldError && (
+                <p className="jm-form-error" id={`${id}-error`}>
+                  {fieldError}
+                </p>
+              )}
             </div>
           );
         })}
-        {error && (
-          <p className="jm-form-error" role="alert">
-            {error}
-          </p>
-        )}
         {success && (
-          <p className="jm-form-success" role="status">
+          <p
+            className="jm-form-success"
+            role="status"
+            tabIndex={-1}
+            ref={successRef}
+          >
             {success}
           </p>
         )}
@@ -261,11 +332,19 @@ export function ActionForm({
             className="jm-confirm"
             role="alertdialog"
             aria-label="Confirm action"
+            aria-describedby={`${formId}-confirmation`}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !busy) {
+                event.preventDefault();
+                setPending(null);
+              }
+            }}
           >
-            <p>{confirm(pending)}</p>
+            <p id={`${formId}-confirmation`}>{confirm(pending)}</p>
             <div className="jm-button-row">
               <button
                 type="button"
+                ref={confirmRef}
                 className="jm-button"
                 disabled={busy}
                 onClick={() => void run(pending)}
@@ -284,6 +363,7 @@ export function ActionForm({
           </div>
         ) : (
           <button
+            ref={submitRef}
             className="jm-button"
             type="submit"
             disabled={busy || disabled}

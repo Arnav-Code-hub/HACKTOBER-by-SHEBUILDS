@@ -12,7 +12,6 @@ from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError,
 from app.core.roles import Role
 from app.core.security import Principal
 from app.modules.analytics.schemas import (
-    DistrictTransparency,
     PublicTransparency,
     StaffWorkload,
     StaffWorkloadList,
@@ -41,7 +40,70 @@ from app.shared.enums import ProblemStatus as Status
 
 # Work an officer still has to carry out or see verified.
 OPEN_WORK = (Status.FUNDED, Status.IN_PROGRESS, Status.AWAITING_VERIFICATION)
-ACTIVE_CASES = tuple(status for status in Status if status != Status.CITIZEN_VERIFIED)
+
+
+async def _public_totals(session: AsyncSession, *, demo: bool) -> PublicTransparency:
+    """Aggregate either live or demonstration records, never a mixture."""
+    status = func.coalesce(Cluster.status, Report.status).label("status")
+    reports = (
+        select(
+            literal("report").label("kind"),
+            status,
+            func.count().label("total"),
+            func.max(Report.status_changed_at).label("updated_at"),
+        )
+        .select_from(Report)
+        .outerjoin(Cluster, Report.cluster_id == Cluster.id)
+        .where(
+            Report.is_demo.is_(demo),
+            or_(Cluster.id.is_(None), Cluster.is_demo.is_(demo)),
+        )
+        .group_by(status)
+    )
+    cases = (
+        select(
+            literal("case").label("kind"),
+            Cluster.status.label("status"),
+            func.count().label("total"),
+            func.max(Cluster.status_changed_at).label("updated_at"),
+        )
+        .where(Cluster.is_demo.is_(demo))
+        .group_by(Cluster.status)
+    )
+    # One statement gives both aggregates the same READ COMMITTED snapshot.
+    rows = (await session.execute(reports.union_all(cases))).all()
+    report_counts = {row.status: row.total for row in rows if row.kind == "report"}
+    case_counts = {row.status: row.total for row in rows if row.kind == "case"}
+    updates = [row.updated_at for row in rows if row.updated_at is not None]
+    return PublicTransparency(
+        report_count=sum(report_counts.values()),
+        cluster_count=sum(case_counts.values()),
+        active_cases=sum(
+            count
+            for status, count in case_counts.items()
+            if status not in {Status.CITIZEN_VERIFIED, Status.REJECTED}
+        ),
+        citizen_verified_cases=case_counts.get(Status.CITIZEN_VERIFIED, 0),
+        reports_by_status=report_counts,
+        clusters_by_status=case_counts,
+        sample_data=demo,
+        updated_at=max(updates) if updates else None,
+    )
+
+
+async def public_transparency(session: AsyncSession) -> PublicTransparency:
+    """Public aggregate counts; report status follows its community case.
+
+    Live records only once any exist. Before that, the labelled demonstration
+    data is shown with `sample_data` set, so the homepage is never a row of
+    zeros during a demo and sample figures are never presented as real.
+    """
+    live = await _public_totals(session, demo=False)
+    if live.report_count or live.cluster_count:
+        return live
+    sample = await _public_totals(session, demo=True)
+    # With no demonstration data either, the honest answer is zero.
+    return sample if sample.report_count or sample.cluster_count else live
 
 
 def require_admin(principal: Principal, *, super_only: bool = False) -> None:
@@ -98,118 +160,6 @@ async def summary(session: AsyncSession, principal: Principal) -> AdminSummary:
         },
         allocated_paise=int(await session.scalar(allocations) or 0),
         pledged_paise=int(await session.scalar(pledges) or 0),
-    )
-
-
-async def public_transparency(session: AsyncSession) -> PublicTransparency:
-    """Publish aggregate live records only; never expose reporters or coordinates."""
-    report_counts: dict[str, int] = {
-        str(status): int(total)
-        for status, total in (
-            await session.execute(
-                select(Report.status, func.count())
-                .where(Report.is_demo.is_(False))
-                .group_by(Report.status)
-            )
-        ).all()
-    }
-    cluster_counts: dict[str, int] = {
-        str(status): int(total)
-        for status, total in (
-            await session.execute(
-                select(Cluster.status, func.count())
-                .where(Cluster.is_demo.is_(False))
-                .group_by(Cluster.status)
-            )
-        ).all()
-    }
-    report_rows = (
-        await session.execute(
-            select(
-                Report.district_id,
-                func.count().label("total"),
-                func.max(Report.status_changed_at).label("updated_at"),
-            )
-            .where(Report.is_demo.is_(False))
-            .group_by(Report.district_id)
-        )
-    ).all()
-    cluster_rows = (
-        await session.execute(
-            select(
-                Cluster.district_id,
-                func.count().label("total"),
-                func.count().filter(Cluster.status.in_(ACTIVE_CASES)).label("active"),
-                func.count().filter(Cluster.status == Status.CITIZEN_VERIFIED).label("verified"),
-                func.max(Cluster.status_changed_at).label("updated_at"),
-            )
-            .where(Cluster.is_demo.is_(False))
-            .group_by(Cluster.district_id)
-        )
-    ).all()
-    allocation_rows = (
-        await session.execute(
-            select(Cluster.district_id, func.coalesce(func.sum(Allocation.amount_paise), 0))
-            .select_from(Allocation)
-            .join(Cluster, Allocation.cluster_id == Cluster.id)
-            .where(Allocation.is_demo.is_(False), Cluster.is_demo.is_(False))
-            .group_by(Cluster.district_id)
-        )
-    ).all()
-    districts = (
-        await session.execute(
-            select(Organization.id, Organization.name)
-            .where(
-                Organization.type == "district",
-                Organization.is_active.is_(True),
-                Organization.is_demo.is_(False),
-            )
-            .order_by(Organization.name, Organization.id)
-        )
-    ).all()
-
-    by_report = {row.district_id: row for row in report_rows}
-    by_cluster = {row.district_id: row for row in cluster_rows}
-    by_allocation: dict[UUID, int] = {
-        district_id: int(amount) for district_id, amount in allocation_rows
-    }
-    rows = []
-    for district_id, name in districts:
-        reports = by_report.get(district_id)
-        clusters = by_cluster.get(district_id)
-        updated = [
-            value
-            for value in (
-                reports.updated_at if reports else None,
-                clusters.updated_at if clusters else None,
-            )
-            if value is not None
-        ]
-        rows.append(
-            DistrictTransparency(
-                district_name=name,
-                report_count=reports.total if reports else 0,
-                cluster_count=clusters.total if clusters else 0,
-                active_cases=clusters.active if clusters else 0,
-                citizen_verified_cases=clusters.verified if clusters else 0,
-                allocated_paise=by_allocation.get(district_id, 0),
-                last_updated=max(updated) if updated else None,
-            )
-        )
-    updated_at = max((row.last_updated for row in rows if row.last_updated), default=None)
-    active_cases = sum(cluster_counts.get(status, 0) for status in ACTIVE_CASES)
-    verified = cluster_counts.get(Status.CITIZEN_VERIFIED, 0)
-    allocated = sum(by_allocation.values())
-    return PublicTransparency(
-        updated_at=updated_at,
-        report_count=sum(report_counts.values()),
-        cluster_count=sum(cluster_counts.values()),
-        active_cases=active_cases,
-        citizen_verified_cases=verified,
-        allocated_paise=allocated,
-        reports_by_status=report_counts,
-        clusters_by_status=cluster_counts,
-        districts=rows,
     )
 
 

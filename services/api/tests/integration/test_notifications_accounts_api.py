@@ -133,11 +133,12 @@ async def test_activation_safeguards(phase2: Phase2) -> None:
 # ------------------------------------------------------------------ analytics
 
 
-async def test_public_totals_need_no_sign_in_and_exclude_demo_records(phase2: Phase2) -> None:
+async def test_public_totals_show_sample_data_until_a_live_report_exists(phase2: Phase2) -> None:
     before = await phase2.client.get("/api/v1/analytics/public")
     assert before.status_code == 200, before.text
     body = before.json()
-    assert body["demo_data_excluded"] is True
+    # Only the seeded demonstration data exists: shown, and labelled as sample.
+    assert body["sample_data"] is True and body["report_count"] > 0
     resident = await add_user(phase2, "analytics-resident", Role.CITIZEN)
     created = await phase2.client.post(
         "/api/v1/reports",
@@ -146,7 +147,8 @@ async def test_public_totals_need_no_sign_in_and_exclude_demo_records(phase2: Ph
     )
     assert created.status_code == 201, created.text
     after = (await phase2.client.get("/api/v1/analytics/public")).json()
-    assert after["report_count"] == body["report_count"] + 1
+    # A live report exists: only live records are counted, never mixed.
+    assert after["sample_data"] is False and after["report_count"] == 1
     # Aggregates only: no reporter, title or coordinates are published.
     text = str(after)
     assert "Handpump repair" not in text and "16.76" not in text

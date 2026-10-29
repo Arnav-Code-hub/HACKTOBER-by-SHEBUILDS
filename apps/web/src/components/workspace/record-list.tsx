@@ -96,8 +96,13 @@ export function RecordList<T>({
           <p>{emptyMessage}</p>
         </div>
       ) : (
-        <div className="jm-table-wrap">
-          <table className="jm-table">
+        <div
+          className="jm-table-wrap"
+          role="region"
+          aria-label={`${title} records`}
+          tabIndex={0}
+        >
+          <table className="jm-table" aria-label={title}>
             <thead>
               <tr>
                 {columns.map((column) => (
@@ -125,7 +130,7 @@ export function RecordList<T>({
                       <td key={column.header}>{column.cell(row)}</td>
                     ))}
                     {onSelect && (
-                      <td>
+                      <td className="jm-table-actions">
                         <button
                           className="jm-button jm-button-secondary jm-button-small"
                           aria-pressed={selected}

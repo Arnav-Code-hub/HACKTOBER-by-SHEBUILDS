@@ -24,6 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <a className="jm-skip-link" href="#main-content">
+          Skip to main content
+        </a>
         <SessionProvider>
           <QueryProvider>{children}</QueryProvider>
         </SessionProvider>

@@ -112,3 +112,6 @@ services/ai/evals/datasets/large/
 *.apk
 *.aab
 *.ipa
+
+# Firebase CLI deploy cache
+.firebase/
