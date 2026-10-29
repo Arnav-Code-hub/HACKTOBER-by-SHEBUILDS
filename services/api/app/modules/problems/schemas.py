@@ -47,6 +47,9 @@ class ReportCreate(BaseModel):
     # How the citizen started the report; provenance only, never a ranking input.
     channel: Literal["text", "voice", "photo", "location"]
     media_ids: list[UUID] = Field(default_factory=list, max_length=3)
+    # Societal flag — citizen indicates report disproportionately affects seniors
+    # or persons with disability. Feeds a transparent ranking bonus.
+    affects_seniors: bool = False
 
     @field_validator("latitude", "longitude", mode="before")
     @classmethod
@@ -93,6 +96,7 @@ class ReportRead(BaseModel):
     cluster_id: UUID | None
     is_demo: bool
     media: list[MediaRead]
+    affects_seniors: bool
     rank: int | None = None
     total_ranked: int | None = None
     priority_score: float | None = None

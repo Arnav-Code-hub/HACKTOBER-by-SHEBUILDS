@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/localization/app_locale.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/location_service.dart';
@@ -15,6 +16,7 @@ import '../../../shared/models/demand_enums.dart';
 import '../../demands/domain/demand.dart';
 import '../../demands/domain/demand_cluster.dart';
 import '../domain/report_draft.dart';
+import '../data/report_draft_store.dart';
 
 /// Everything the Report screen needs to render, in one immutable value.
 @immutable
@@ -90,6 +92,10 @@ class ReportController extends Notifier<ReportState> {
     state = state.copyWith(draft: state.draft.copyWith(channel: channel));
   }
 
+  void restoreDraft(ReportDraft draft) {
+    state = state.copyWith(draft: draft, clearError: true);
+  }
+
   Future<void> toggleListening() async {
     final speech = ref.read(speechServiceProvider);
 
@@ -117,7 +123,22 @@ class ReportController extends Notifier<ReportState> {
       draft: state.draft.copyWith(transcript: '', channel: ReportChannel.voice),
     );
 
+    String? speechLocale;
+    try {
+      final languageCode =
+          ref.read(appLocaleProvider).valueOrNull?.languageCode ?? 'en';
+      for (final locale in await speech.locales()) {
+        if (locale.toLowerCase().split(RegExp('[-_]')).first == languageCode) {
+          speechLocale = locale;
+          break;
+        }
+      }
+    } catch (_) {
+      // Keep the device's default if locale discovery is unavailable.
+    }
+
     await speech.listen(
+      localeId: speechLocale,
       onResult: (text) {
         state = state.copyWith(draft: state.draft.copyWith(transcript: text));
       },
@@ -315,6 +336,7 @@ class ReportController extends Notifier<ReportState> {
         return null;
       }
       state = state.copyWith(isSubmitting: false, submitted: demand);
+      unawaited(ref.read(reportDraftStoreProvider).clear(user.uid));
       return demand;
     } on Failure catch (failure) {
       if (state.draft.submissionKey != key) return null;

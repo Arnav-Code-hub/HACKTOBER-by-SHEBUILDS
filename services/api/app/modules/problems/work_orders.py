@@ -26,7 +26,8 @@ from app.modules.files.service import (
     first_report_photo,
 )
 from app.modules.funding.service import allocated_paise, record_allocation
-from app.modules.problems.models import Cluster, Report, WorkOrder
+from app.modules.notifications.service import publish_case_update
+from app.modules.problems.models import Cluster, Report, Support, WorkOrder
 from app.modules.problems.schemas import (
     CompleteWorkOrder,
     EvidencePhotoRead,
@@ -43,6 +44,31 @@ from app.persistence.audit import SqlAuditWriter
 from app.persistence.idempotency import SqlIdempotencyStore
 from app.persistence.lifecycle import SqlTransitionStore
 from app.shared.enums import ProblemStatus as Status
+
+
+async def _notify_case(
+    session: AsyncSession,
+    cluster: Cluster,
+    *,
+    event_key: str,
+    title: str,
+    body: str,
+) -> None:
+    reporters = await session.scalars(
+        select(Report.reporter_id).where(Report.cluster_id == cluster.id).distinct()
+    )
+    supporters = await session.scalars(
+        select(Support.user_id).where(Support.cluster_id == cluster.id).distinct()
+    )
+    await publish_case_update(
+        session,
+        [*reporters.all(), *supporters.all()],
+        event_key=event_key,
+        title=title,
+        body=body,
+        resource_type="cluster",
+        resource_id=cluster.id,
+    )
 
 
 def _orders() -> Select[tuple[WorkOrder, Cluster, Report]]:
@@ -149,6 +175,13 @@ async def fund_cluster(
                 },
             ),
         )
+        await _notify_case(
+            session,
+            cluster,
+            event_key="cluster.status.funded",
+            title="A community case was funded",
+            body="A department allocated funding and assigned repair work.",
+        )
         result = FundResult(allocation_id=allocation_id, work_order_id=work.id)
         return StoredResponse(201, result.model_dump(mode="json"))
 
@@ -199,7 +232,8 @@ async def update_work_order(
     require_assignment(principal, work.district_id, work.department_id, work.officer_id)
     cluster = await session.get(Cluster, work.cluster_id)
     assert cluster is not None
-    if cluster.status == Status.FUNDED:
+    started = cluster.status == Status.FUNDED
+    if started:
         # The first progress note starts the work.
         snapshot = await SqlTransitionStore("cluster").transition(
             session, cluster.id, Status.FUNDED, Status.IN_PROGRESS, actor=principal, reason=None
@@ -224,6 +258,14 @@ async def update_work_order(
             after={"notes": body.notes},
         ),
     )
+    if started:
+        await _notify_case(
+            session,
+            cluster,
+            event_key="cluster.status.in_progress",
+            title="Repair work has started",
+            body="The assigned officer has started work on this community case.",
+        )
     return StatusAck(id=work.id, status=status)
 
 
@@ -270,6 +312,13 @@ async def complete_work_order(
             Status.AWAITING_VERIFICATION,
             actor=principal,
             reason=None,
+        )
+        await _notify_case(
+            session,
+            cluster,
+            event_key=f"cluster.status.{snapshot.status}",
+            title="Repair work is ready for review",
+            body="Completion evidence was submitted. Please review the repair in JanMaang.",
         )
         return StoredResponse(
             200, StatusAck(id=work.id, status=snapshot.status).model_dump(mode="json")

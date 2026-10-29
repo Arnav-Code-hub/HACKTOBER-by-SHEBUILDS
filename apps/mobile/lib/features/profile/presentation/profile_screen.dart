@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_typography.dart';
+import '../../../shared/widgets/app_language_selector.dart';
 import '../../../shared/widgets/jm_app_bar.dart';
 import '../../../shared/widgets/jm_card.dart';
 import '../../../shared/widgets/jm_logo.dart';
@@ -21,9 +23,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final user = ref.watch(currentUserProvider);
+    final strings = AppStrings.of(context);
 
     return Scaffold(
-      appBar: JmAppBar.task(title: 'Profile'),
+      appBar: JmAppBar.task(title: strings.text('profile')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           Insets.marginMobile,
@@ -55,7 +58,7 @@ class ProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        user?.displayName ?? 'Citizen',
+                        user?.displayName ?? strings.text('citizen'),
                         style: JanMaangTypography.titleLg.copyWith(
                           color: scheme.onSurface,
                         ),
@@ -87,29 +90,32 @@ class ProfileScreen extends ConsumerWidget {
           if (user?.locationLabel.isNotEmpty ?? false)
             _Tile(
               icon: Icons.location_on_outlined,
-              title: 'Reporting from',
+              title: strings.text('reporting_from'),
               subtitle:
                   '${user!.locationLabel}${user.ward.isEmpty ? '' : ' • ${user.ward}'}',
             ),
           _Tile(
             icon: Icons.fact_check_outlined,
-            title: 'Field verification',
-            subtitle: 'Open an assigned evidence-capture task',
+            title: strings.text('field_verification'),
+            subtitle: strings.text('field_verification_help'),
             onTap: () => context.pushNamed(
               AppRoute.fieldVerification.name,
               pathParameters: <String, String>{'id': 'assignment-1'},
             ),
           ),
-          const _Tile(
+          _Tile(
             icon: Icons.notifications_outlined,
-            title: 'Notifications',
-            subtitle: 'SMS and WhatsApp updates on your demands',
+            title: strings.text('notifications'),
+            subtitle: strings.text('notifications_inbox'),
+            onTap: () => context.pushNamed(AppRoute.notifications.name),
           ),
-          const _Tile(
+          _Tile(
             icon: Icons.help_outline,
-            title: 'Support',
-            subtitle: 'Get help using JanMaang',
+            title: strings.text('support'),
+            subtitle: strings.text('support_help'),
           ),
+          const SizedBox(height: Insets.md),
+          const AppLanguageSelector(),
           const SizedBox(height: Insets.lg),
 
           const SizedBox(height: Insets.lg),
@@ -122,7 +128,7 @@ class ProfileScreen extends ConsumerWidget {
               if (context.mounted) context.goNamed(AppRoute.onboarding.name);
             },
             icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Sign out'),
+            label: Text(strings.text('sign_out')),
           ),
         ],
       ),

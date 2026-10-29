@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
     func,
     text,
     true,
@@ -62,6 +63,10 @@ class Report(UUIDMixin, TimestampMixin, DemoMixin, Base):
         ForeignKey("clusters.id", use_alter=True, name="fk_reports_cluster_id_clusters"), index=True
     )
     rejection_reason: Mapped[str | None] = mapped_column(Text)
+    # Senior / disability priority flag — recorded at intake, never inferred.
+    affects_seniors: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
 
 
 class Cluster(UUIDMixin, TimestampMixin, DemoMixin, Base):

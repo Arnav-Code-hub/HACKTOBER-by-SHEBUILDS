@@ -2,7 +2,8 @@
 
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
+from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import AuditEvent
@@ -15,10 +16,17 @@ from app.modules.audit.schemas import (
     AdminUserChange,
     AdminUserList,
     AdminUserRead,
+    AdminUserStatusChange,
     AuditList,
     AuditRead,
     OrganizationList,
     OrganizationRead,
+)
+from app.modules.analytics.schemas import (
+    DistrictTransparency,
+    PublicTransparency,
+    StaffWorkload,
+    StaffWorkloadList,
 )
 from app.modules.departments.models import Organization
 from app.modules.funding.models import Allocation, Sponsorship
@@ -31,6 +39,7 @@ from app.shared.enums import ProblemStatus as Status
 
 # Work an officer still has to carry out or see verified.
 OPEN_WORK = (Status.FUNDED, Status.IN_PROGRESS, Status.AWAITING_VERIFICATION)
+ACTIVE_CASES = tuple(status for status in Status if status != Status.CITIZEN_VERIFIED)
 
 
 def require_admin(principal: Principal, *, super_only: bool = False) -> None:
@@ -90,6 +99,174 @@ async def summary(session: AsyncSession, principal: Principal) -> AdminSummary:
     )
 
 
+async def public_transparency(session: AsyncSession) -> PublicTransparency:
+    """Publish aggregate live records only; never expose reporters or coordinates."""
+    report_counts = dict(
+        (
+            await session.execute(
+                select(Report.status, func.count())
+                .where(Report.is_demo.is_(False))
+                .group_by(Report.status)
+            )
+        ).all()
+    )
+    cluster_counts = dict(
+        (
+            await session.execute(
+                select(Cluster.status, func.count())
+                .where(Cluster.is_demo.is_(False))
+                .group_by(Cluster.status)
+            )
+        ).all()
+    )
+    report_rows = (
+        await session.execute(
+            select(
+                Report.district_id,
+                func.count().label("count"),
+                func.max(Report.status_changed_at).label("updated_at"),
+            )
+            .where(Report.is_demo.is_(False))
+            .group_by(Report.district_id)
+        )
+    ).all()
+    cluster_rows = (
+        await session.execute(
+            select(
+                Cluster.district_id,
+                func.count().label("count"),
+                func.count().filter(Cluster.status.in_(ACTIVE_CASES)).label("active"),
+                func.count().filter(Cluster.status == Status.CITIZEN_VERIFIED).label("verified"),
+                func.max(Cluster.status_changed_at).label("updated_at"),
+            )
+            .where(Cluster.is_demo.is_(False))
+            .group_by(Cluster.district_id)
+        )
+    ).all()
+    allocation_rows = (
+        await session.execute(
+            select(Cluster.district_id, func.coalesce(func.sum(Allocation.amount_paise), 0))
+            .select_from(Allocation)
+            .join(Cluster, Allocation.cluster_id == Cluster.id)
+            .where(Allocation.is_demo.is_(False), Cluster.is_demo.is_(False))
+            .group_by(Cluster.district_id)
+        )
+    ).all()
+    districts = (
+        await session.execute(
+            select(Organization.id, Organization.name)
+            .where(
+                Organization.type == "district",
+                Organization.is_active.is_(True),
+                Organization.is_demo.is_(False),
+            )
+            .order_by(Organization.name, Organization.id)
+        )
+    ).all()
+
+    by_report = {row.district_id: row for row in report_rows}
+    by_cluster = {row.district_id: row for row in cluster_rows}
+    by_allocation = dict(allocation_rows)
+    rows = []
+    for district_id, name in districts:
+        reports = by_report.get(district_id)
+        clusters = by_cluster.get(district_id)
+        updated = [
+            value
+            for value in (
+                reports.updated_at if reports else None,
+                clusters.updated_at if clusters else None,
+            )
+            if value is not None
+        ]
+        rows.append(
+            DistrictTransparency(
+                district_name=name,
+                report_count=reports.count if reports else 0,
+                cluster_count=clusters.count if clusters else 0,
+                active_cases=clusters.active if clusters else 0,
+                citizen_verified_cases=clusters.verified if clusters else 0,
+                allocated_paise=int(by_allocation.get(district_id, 0)),
+                last_updated=max(updated) if updated else None,
+            )
+        )
+    updated_at = max((row.last_updated for row in rows if row.last_updated), default=None)
+    active_cases = sum(cluster_counts.get(status, 0) for status in ACTIVE_CASES)
+    verified = cluster_counts.get(Status.CITIZEN_VERIFIED, 0)
+    allocated = sum(int(amount) for amount in by_allocation.values())
+    return PublicTransparency(
+        updated_at=updated_at,
+        report_count=sum(report_counts.values()),
+        cluster_count=sum(cluster_counts.values()),
+        active_cases=active_cases,
+        citizen_verified_cases=verified,
+        allocated_paise=allocated,
+        reports_by_status={str(key): value for key, value in report_counts.items()},
+        clusters_by_status={str(key): value for key, value in cluster_counts.items()},
+        districts=rows,
+    )
+
+
+async def staff_workload(
+    session: AsyncSession,
+    principal: Principal,
+) -> StaffWorkloadList:
+    if principal.role not in {Role.DEPARTMENT, Role.GOV_ADMIN, Role.SUPER_ADMIN}:
+        raise PermissionDeniedError("Department or administrator access required.")
+    if principal.role in {Role.DEPARTMENT, Role.GOV_ADMIN} and principal.district_id is None:
+        raise PermissionDeniedError("Your account has no assigned district.")
+    department = aliased(Organization)
+    live_work = WorkOrder.is_demo.is_(False) & Cluster.is_demo.is_(False)
+    funded = func.count(WorkOrder.id).filter(live_work, Cluster.status == Status.FUNDED)
+    in_progress = func.count(WorkOrder.id).filter(live_work, Cluster.status == Status.IN_PROGRESS)
+    awaiting = func.count(WorkOrder.id).filter(
+        live_work, Cluster.status == Status.AWAITING_VERIFICATION
+    )
+    open_count = func.count(WorkOrder.id).filter(live_work, Cluster.status.in_(OPEN_WORK))
+    oldest = func.min(case((live_work & Cluster.status.in_(OPEN_WORK), WorkOrder.assigned_at)))
+    query = (
+        select(
+            User.id,
+            User.display_name,
+            User.email,
+            department.name,
+            open_count,
+            funded,
+            in_progress,
+            awaiting,
+            oldest,
+        )
+        .select_from(User)
+        .outerjoin(WorkOrder, WorkOrder.officer_id == User.id)
+        .outerjoin(Cluster, Cluster.id == WorkOrder.cluster_id)
+        .outerjoin(department, department.id == User.department_id)
+        .where(User.role == Role.OFFICER, User.is_active.is_(True), User.is_demo.is_(False))
+        .group_by(User.id, department.name)
+        .order_by(open_count.desc(), User.display_name, User.id)
+    )
+    if principal.role != Role.SUPER_ADMIN:
+        query = query.where(User.district_id == principal.district_id)
+    if principal.role == Role.DEPARTMENT:
+        if principal.department_id is None:
+            raise PermissionDeniedError("Your account has no assigned department.")
+        query = query.where(User.department_id == principal.department_id)
+    result = await session.execute(query)
+    return StaffWorkloadList(
+        items=[
+            StaffWorkload(
+                user_id=row[0],
+                display_name=row[1],
+                email=row[2],
+                department_name=row[3],
+                open_work_orders=row[4] or 0,
+                funded=row[5] or 0,
+                in_progress=row[6] or 0,
+                awaiting_verification=row[7] or 0,
+                oldest_open_assignment=row[8],
+            )
+            for row in result.all()
+        ]
+    )
 async def audit_list(session: AsyncSession, principal: Principal, limit: int) -> AuditList:
     require_admin(principal)
     query = select(AuditEventRecord, User.display_name).join(
@@ -214,4 +391,53 @@ async def change_user(
                     reason=body.reason,
                 ),
             )
+    return after
+
+
+async def change_user_status(
+    session: AsyncSession,
+    principal: Principal,
+    identity: UUID,
+    body: AdminUserStatusChange,
+) -> AdminUserRead:
+    require_admin(principal, super_only=True)
+    if identity == principal.user_id and not body.is_active:
+        raise PermissionDeniedError("Another super administrator must deactivate your account.")
+    user = await session.scalar(
+        select(User)
+        .where(User.id == identity)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if user is None:
+        raise NotFoundError("User not found.")
+    if user.is_active == body.is_active:
+        return AdminUserRead.model_validate(user)
+    if not body.is_active and user.role == Role.OFFICER:
+        open_work = await session.scalar(
+            select(func.count())
+            .select_from(WorkOrder)
+            .join(Cluster, WorkOrder.cluster_id == Cluster.id)
+            .where(WorkOrder.officer_id == identity, Cluster.status.in_(OPEN_WORK))
+        )
+        if open_work:
+            raise ConflictError(
+                "Complete, reassign or verify this officer's open work before deactivation."
+            )
+    before = AdminUserRead.model_validate(user).model_dump(mode="json")
+    user.is_active = body.is_active
+    after = AdminUserRead.model_validate(user)
+    await SqlAuditWriter().log_event(
+        session,
+        AuditEvent(
+            principal.user_id,
+            "user.activated" if body.is_active else "user.deactivated",
+            "user",
+            user.id,
+            user.district_id,
+            before=before,
+            after=after.model_dump(mode="json"),
+            reason=body.reason,
+        ),
+    )
     return after

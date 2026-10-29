@@ -118,6 +118,7 @@ async def _read(
                 cluster_id=row.Report.cluster_id,
                 is_demo=row.Report.is_demo,
                 media=photos.get(row.Report.id, []),
+                affects_seniors=row.Report.affects_seniors,
                 rank=cluster_rank.rank if cluster_rank else None,
                 total_ranked=len(ranked) if cluster_rank else None,
                 priority_score=cluster_rank.priority_score if cluster_rank else None,

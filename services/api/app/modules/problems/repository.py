@@ -20,6 +20,7 @@ class ClusterSnapshot:
     report_count: int
     supporter_count: int
     severity: int
+    affects_seniors: bool
 
 
 async def cluster_snapshots(
@@ -44,6 +45,7 @@ async def cluster_snapshots(
             Report.cluster_id,
             func.count().label("report_count"),
             func.max(case(SEVERITY_SCORES, value=Report.severity)).label("severity"),
+            func.bool_or(Report.affects_seniors).label("affects_seniors"),
         )
         .where(*in_scope)
         .group_by(Report.cluster_id)
@@ -60,7 +62,8 @@ async def cluster_snapshots(
     )
     query = (
         select(
-            Cluster, Report, members.c.report_count, support.c.supporter_count, members.c.severity
+            Cluster, Report, members.c.report_count, support.c.supporter_count,
+            members.c.severity, members.c.affects_seniors,
         )
         .join(Report, Cluster.anchor_report_id == Report.id)
         .join(members, members.c.cluster_id == Cluster.id)
@@ -70,7 +73,8 @@ async def cluster_snapshots(
         query = query.where(Cluster.district_id == district_id)
     return [
         ClusterSnapshot(
-            row.Cluster, row.Report, row.report_count, row.supporter_count, row.severity
+            row.Cluster, row.Report, row.report_count, row.supporter_count,
+            row.severity, bool(row.affects_seniors),
         )
         for row in (await session.execute(query)).all()
     ]
