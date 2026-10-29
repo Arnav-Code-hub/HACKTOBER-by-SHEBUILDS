@@ -13,6 +13,7 @@ from app.modules.audit.schemas import (
     AdminUserChange,
     AdminUserList,
     AdminUserRead,
+    AdminUserStatusChange,
     AuditList,
     OrganizationList,
 )
@@ -61,3 +62,13 @@ async def change_user(
     session: AsyncSession = Depends(get_db, scope="function"),
 ) -> AdminUserRead:
     return await service.change_user(session, principal, identity, body)
+
+
+@router.patch("/admin/users/{identity}/status", response_model=AdminUserRead)
+async def change_user_status(
+    identity: UUID,
+    body: AdminUserStatusChange,
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> AdminUserRead:
+    return await service.change_user_status(session, principal, identity, body)

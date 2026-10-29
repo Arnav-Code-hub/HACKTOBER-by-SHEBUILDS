@@ -22,6 +22,7 @@ from app.modules.auth import models as auth_models  # noqa: F401
 from app.modules.departments import models as departments_models  # noqa: F401
 from app.modules.files import models as files_models  # noqa: F401
 from app.modules.funding import models as funding_models  # noqa: F401
+from app.modules.notifications import models as notifications_models  # noqa: F401
 from app.modules.problem_statements import models as statement_models  # noqa: F401
 from app.modules.problems import models as problems_models  # noqa: F401
 from app.modules.projects import models as projects_models  # noqa: F401

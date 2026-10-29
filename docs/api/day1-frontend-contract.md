@@ -443,6 +443,28 @@ evidence" and offers Reload; nothing is recorded.
 
 Nothing is stored and no idempotency key is needed. Failure must leave manual entry and submission available; it must not create or imply a persisted report. Photos are not sent.
 
+## Case-update notifications (Flutter inbox)
+
+| Endpoint | Body | Response / rules |
+|---|---|---|
+| `GET notifications?unread_only=false&limit=50&offset=0` | — | `{"items":[{"id","title","body","resource_type","resource_id","created_at","read_at"}],"unread_count"}`, newest first. Only the signed-in user's own notifications |
+| `POST notifications/{id}/read` | — | `{"id","read_at"}`. Marking twice keeps the first time. Another user's notification is 404 |
+
+Notifications are written in the same transaction as the change they describe, so a failed change never notifies. Reporters (and explicit supporters) of a cluster are told when their report is reviewed or clustered, when the case is funded, when work starts, when completion evidence is ready for review, and when a verdict is recorded. Completion and verdict updates are **per round**, so a correction round notifies again. In-app only: no push, SMS or WhatsApp delivery yet. The citizen app's demo mode shows an explanatory message instead of an inbox.
+
+## Account activation (super admin)
+
+| Endpoint | Body | Response / rules |
+|---|---|---|
+| `PATCH admin/users/{id}/status` | `{"is_active":true\|false,"reason"}` | admin user (now including `is_active`). A deactivated account is refused on its next request. 403 for your own account and for non-super admins; **409** for an officer with open work orders (funded, in progress or awaiting verification); the reason is required and audited as `user.activated` / `user.deactivated`. No staff-site control yet |
+
+## Transparency analytics
+
+| Endpoint | Body | Response / rules |
+|---|---|---|
+| `GET analytics/public` | — (**no sign-in**) | Aggregate totals only: report and cluster counts by status, active and citizen-verified cases, recorded allocations, per district. **Demo records are excluded** (`demo_data_excluded: true`); no reporter, title, photo or coordinate is published |
+| `GET analytics/workload` | — (department, gov admin, super admin) | Per active, non-demo officer in scope: open, funded, in-progress and awaiting-verification work orders and the oldest open assignment. Other roles 403. Not yet shown in either client |
+
 ## Integration gate
 
 With real Firebase configuration, a seeded citizen account and the API running: sign in, upload one image, submit a report, refresh, read the same report and image, restart the API, and read it again. The gate is pending until performed against the actual backend; client tests cannot establish database persistence.

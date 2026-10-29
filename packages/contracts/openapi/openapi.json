@@ -1958,6 +1958,231 @@
           }
         }
       }
+    },
+    "/api/v1/admin/users/{identity}/status": {
+      "patch": {
+        "tags": [
+          "Administration"
+        ],
+        "summary": "Change User Status",
+        "operationId": "change_user_status_api_v1_admin_users__identity__status_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserStatusChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Inbox",
+        "operationId": "inbox_api_v1_notifications_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Unread Only"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Mark Read",
+        "operationId": "mark_read_api_v1_notifications__notification_id__read_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationAck"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/public": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Public Transparency",
+        "description": "Anonymous aggregate only. Reporter identity and exact coordinates stay private.",
+        "operationId": "public_transparency_api_v1_analytics_public_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTransparency"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/workload": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Staff Workload",
+        "operationId": "staff_workload_api_v1_analytics_workload_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffWorkloadList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2158,6 +2383,10 @@
               }
             ],
             "title": "Organization Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
           }
         },
         "type": "object",
@@ -2169,9 +2398,31 @@
           "district_id",
           "department_id",
           "institute_id",
-          "organization_id"
+          "organization_id",
+          "is_active"
         ],
         "title": "AdminUserRead"
+      },
+      "AdminUserStatusChange": {
+        "properties": {
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "is_active",
+          "reason"
+        ],
+        "title": "AdminUserStatusChange"
       },
       "AssignCluster": {
         "properties": {
@@ -2478,6 +2729,57 @@
         "title": "CurrentUser",
         "description": "`GET /users/me`: the profile plus its district's display name."
       },
+      "DistrictTransparency": {
+        "properties": {
+          "district_name": {
+            "type": "string",
+            "title": "District Name"
+          },
+          "report_count": {
+            "type": "integer",
+            "title": "Report Count"
+          },
+          "cluster_count": {
+            "type": "integer",
+            "title": "Cluster Count"
+          },
+          "active_cases": {
+            "type": "integer",
+            "title": "Active Cases"
+          },
+          "citizen_verified_cases": {
+            "type": "integer",
+            "title": "Citizen Verified Cases"
+          },
+          "allocated_paise": {
+            "type": "integer",
+            "title": "Allocated Paise"
+          },
+          "last_updated": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "district_name",
+          "report_count",
+          "cluster_count",
+          "active_cases",
+          "citizen_verified_cases",
+          "allocated_paise",
+          "last_updated"
+        ],
+        "title": "DistrictTransparency"
+      },
       "EvidencePhotoRead": {
         "properties": {
           "url": {
@@ -2693,6 +2995,106 @@
         ],
         "title": "MediaRead"
       },
+      "NotificationAck": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "read_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Read At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "read_at"
+        ],
+        "title": "NotificationAck"
+      },
+      "NotificationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "unread_count": {
+            "type": "integer",
+            "title": "Unread Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "unread_count"
+        ],
+        "title": "NotificationList"
+      },
+      "NotificationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "event_key": {
+            "type": "string",
+            "title": "Event Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "resource_type": {
+            "type": "string",
+            "title": "Resource Type"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resource Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_key",
+          "title",
+          "body",
+          "resource_type",
+          "resource_id",
+          "created_at",
+          "read_at"
+        ],
+        "title": "NotificationRead"
+      },
       "OfficerList": {
         "properties": {
           "items": {
@@ -2881,6 +3283,81 @@
         ],
         "title": "ProblemStatus",
         "description": "The agreed report lifecycle. Mirrored by the Flutter mapping in\napps/mobile/lib/features/report/data/report_dto.dart and documented in\ndocs/api/day1-frontend-contract.md \u2014 change all three together.\n\nVERIFIED means validated by the Panchayat. Citizen confirmation of a repair\nis CITIZEN_VERIFIED."
+      },
+      "PublicTransparency": {
+        "properties": {
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "demo_data_excluded": {
+            "type": "boolean",
+            "title": "Demo Data Excluded",
+            "default": true
+          },
+          "report_count": {
+            "type": "integer",
+            "title": "Report Count"
+          },
+          "cluster_count": {
+            "type": "integer",
+            "title": "Cluster Count"
+          },
+          "active_cases": {
+            "type": "integer",
+            "title": "Active Cases"
+          },
+          "citizen_verified_cases": {
+            "type": "integer",
+            "title": "Citizen Verified Cases"
+          },
+          "allocated_paise": {
+            "type": "integer",
+            "title": "Allocated Paise"
+          },
+          "reports_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reports By Status"
+          },
+          "clusters_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Clusters By Status"
+          },
+          "districts": {
+            "items": {
+              "$ref": "#/components/schemas/DistrictTransparency"
+            },
+            "type": "array",
+            "title": "Districts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "updated_at",
+          "report_count",
+          "cluster_count",
+          "active_cases",
+          "citizen_verified_cases",
+          "allocated_paise",
+          "reports_by_status",
+          "clusters_by_status",
+          "districts"
+        ],
+        "title": "PublicTransparency"
       },
       "RankedCluster": {
         "properties": {
@@ -3464,6 +3941,91 @@
           "critical"
         ],
         "title": "Severity"
+      },
+      "StaffWorkload": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "open_work_orders": {
+            "type": "integer",
+            "title": "Open Work Orders"
+          },
+          "funded": {
+            "type": "integer",
+            "title": "Funded"
+          },
+          "in_progress": {
+            "type": "integer",
+            "title": "In Progress"
+          },
+          "awaiting_verification": {
+            "type": "integer",
+            "title": "Awaiting Verification"
+          },
+          "oldest_open_assignment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Open Assignment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "email",
+          "department_name",
+          "open_work_orders",
+          "funded",
+          "in_progress",
+          "awaiting_verification",
+          "oldest_open_assignment"
+        ],
+        "title": "StaffWorkload"
+      },
+      "StaffWorkloadList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StaffWorkload"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "StaffWorkloadList"
       },
       "StatementCreate": {
         "properties": {

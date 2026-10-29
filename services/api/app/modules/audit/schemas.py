@@ -19,6 +19,7 @@ class AdminUserRead(BaseModel):
     department_id: UUID | None
     institute_id: UUID | None
     organization_id: UUID | None
+    is_active: bool
 
 
 class AdminUserList(BaseModel):
@@ -32,6 +33,12 @@ class AdminUserChange(BaseModel):
     department_id: UUID | None
     institute_id: UUID | None
     organization_id: UUID | None = None
+    reason: str = Field(min_length=1, max_length=300)
+
+
+class AdminUserStatusChange(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    is_active: bool
     reason: str = Field(min_length=1, max_length=300)
 
 

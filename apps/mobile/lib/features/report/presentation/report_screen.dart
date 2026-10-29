@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/routes.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/providers.dart';
 import '../../../core/services/media_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -15,6 +19,8 @@ import '../../../shared/widgets/jm_mic_button.dart';
 import '../../../shared/widgets/jm_photo_dropzone.dart';
 import '../../../shared/widgets/jm_states.dart';
 import 'report_controller.dart';
+import '../data/report_draft_store.dart';
+import '../domain/report_draft.dart';
 import 'widgets/analysis_bento.dart';
 import 'widgets/location_action_card.dart';
 import 'widgets/report_location_picker.dart';
@@ -39,26 +45,43 @@ class ReportScreen extends ConsumerStatefulWidget {
 class _ReportScreenState extends ConsumerState<ReportScreen> {
   late final TextEditingController _textController = TextEditingController();
   bool _typing = false;
+  ReportDraft? _savedDraft;
 
   @override
   void initState() {
     super.initState();
-    // The Home card decides which entry point opened this screen.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final controller = ref.read(reportControllerProvider.notifier)
-        ..setChannel(widget.channel);
-      switch (widget.channel) {
-        case ReportChannel.text:
-          setState(() => _typing = true);
-        case ReportChannel.photo:
-          _pickPhotos();
-        case ReportChannel.location:
-          controller.useCurrentLocation();
-        case ReportChannel.voice:
-          break;
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareDraft());
+  }
+
+  Future<void> _prepareDraft() async {
+    final uid = ref.read(currentUserProvider)?.uid;
+    final store = ref.read(reportDraftStoreProvider);
+    final saved = uid == null ? null : await store.load(uid);
+    if (!mounted) return;
+
+    final controller = ref.read(reportControllerProvider.notifier);
+    final current = ref.read(reportControllerProvider).draft;
+    if (current.hasSavedContent) {
+      controller.setChannel(widget.channel);
+      return;
+    }
+
+    if (saved != null) {
+      setState(() => _savedDraft = saved);
+      return;
+    }
+
+    controller.setChannel(widget.channel);
+    switch (widget.channel) {
+      case ReportChannel.text:
+        setState(() => _typing = true);
+      case ReportChannel.photo:
+        _pickPhotos();
+      case ReportChannel.location:
+        controller.useCurrentLocation();
+      case ReportChannel.voice:
+        break;
+    }
   }
 
   @override
@@ -100,11 +123,23 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final strings = AppStrings.of(context);
     final state = ref.watch(reportControllerProvider);
     final controller = ref.read(reportControllerProvider.notifier);
 
     // A matching cluster means the citizen should join rather than duplicate.
     ref.listen(reportControllerProvider, (previous, next) {
+      final uid = ref.read(currentUserProvider)?.uid;
+      if (uid != null) {
+        final store = ref.read(reportDraftStoreProvider);
+        if (next.submitted != null) {
+          unawaited(store.clear(uid));
+        } else if (next.draft.hasSavedContent) {
+          unawaited(store.save(uid, next.draft));
+        } else if (previous?.draft.hasSavedContent == true) {
+          unawaited(store.clear(uid));
+        }
+      }
       final cluster = next.similarCluster;
       if (cluster != null && previous?.similarCluster == null && mounted) {
         context.pushNamed(
@@ -122,7 +157,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     });
 
     return Scaffold(
-      appBar: JmAppBar.task(title: 'Report a Need'),
+      appBar: JmAppBar.task(title: strings.text('report_title')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -132,9 +167,56 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             Insets.xl,
           ),
           children: <Widget>[
+            if (_savedDraft != null) ...<Widget>[
+              JmCard(
+                padding: const EdgeInsets.all(Insets.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      strings.text('draft_available'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: Insets.xs),
+                    Text(strings.text('draft_storage_note')),
+                    const SizedBox(height: Insets.sm),
+                    Wrap(
+                      spacing: Insets.sm,
+                      children: <Widget>[
+                        FilledButton(
+                          onPressed: () {
+                            final draft = _savedDraft!;
+                            controller.restoreDraft(draft);
+                            _textController.text = draft.transcript;
+                            setState(() {
+                              _typing = draft.channel == ReportChannel.text;
+                              _savedDraft = null;
+                            });
+                          },
+                          child: Text(strings.text('restore_draft')),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final uid = ref.read(currentUserProvider)?.uid;
+                            if (uid != null) {
+                              await ref
+                                  .read(reportDraftStoreProvider)
+                                  .clear(uid);
+                            }
+                            if (mounted) setState(() => _savedDraft = null);
+                          },
+                          child: Text(strings.text('discard_draft')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Insets.md),
+            ],
             Center(
               child: Text(
-                'Tell us what your community needs.',
+                strings.text('report_prompt'),
                 textAlign: TextAlign.center,
                 style: JanMaangTypography.titleLg.copyWith(
                   color: scheme.onSurfaceVariant,
@@ -157,7 +239,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                   _typing ? Icons.mic_none : Icons.keyboard_outlined,
                   size: 18,
                 ),
-                label: Text(_typing ? 'Use voice instead' : 'Type it instead'),
+                label: Text(
+                  strings.text(_typing ? 'use_voice' : 'type_instead'),
+                ),
               ),
             ),
             const SizedBox(height: Insets.md),
@@ -177,7 +261,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
             if (state.isAnalyzing) ...<Widget>[
               const SizedBox(height: Insets.md),
-              const JmInlineLoader(message: 'Understanding your report…'),
+              JmInlineLoader(message: strings.text('understanding_report')),
             ],
 
             const SizedBox(height: Insets.md),
@@ -186,33 +270,32 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                   ? controller.analyze
                   : null,
               icon: const Icon(Icons.auto_awesome_outlined),
-              label: const Text('Suggest details (optional)'),
+              label: Text(strings.text('suggest_details')),
             ),
             const SizedBox(height: Insets.md),
             Text(
-              'Report details',
+              strings.text('report_details'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const Text(
-              'Enter these yourself if suggestions are unavailable. '
-              'These are your reported details; officials will review them.',
-            ),
+            Text(strings.text('manual_suggestion_help')),
             const SizedBox(height: Insets.sm),
             TextFormField(
               initialValue: state.draft.manualTitle,
               enabled: !state.isBusy,
-              decoration: const InputDecoration(labelText: 'Short title'),
+              decoration: InputDecoration(
+                labelText: strings.text('short_title'),
+              ),
               onChanged: controller.updateManualTitle,
             ),
             const SizedBox(height: Insets.sm),
             DropdownButtonFormField<DemandCategory>(
               initialValue: state.draft.manualCategory,
-              decoration: const InputDecoration(labelText: 'Category'),
+              decoration: InputDecoration(labelText: strings.text('category')),
               items: <DropdownMenuItem<DemandCategory>>[
                 for (final category in DemandCategory.values)
                   DropdownMenuItem(
                     value: category,
-                    child: Text(category.label),
+                    child: Text(strings.category(category)),
                   ),
               ],
               onChanged: state.isBusy
@@ -224,12 +307,14 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             const SizedBox(height: Insets.sm),
             DropdownButtonFormField<Severity>(
               initialValue: state.draft.manualSeverity ?? Severity.medium,
-              decoration: const InputDecoration(labelText: 'Reported severity'),
+              decoration: InputDecoration(
+                labelText: strings.text('reported_severity'),
+              ),
               items: <DropdownMenuItem<Severity>>[
                 for (final severity in Severity.values)
                   DropdownMenuItem(
                     value: severity,
-                    child: Text(severity.label),
+                    child: Text(strings.severity(severity)),
                   ),
               ],
               onChanged: state.isBusy
@@ -256,7 +341,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
             const SizedBox(height: Insets.lg),
             Text(
-              'Add a photo',
+              strings.text('add_photo'),
               style: JanMaangTypography.titleLg.copyWith(
                 color: scheme.onSurface,
               ),
@@ -264,9 +349,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             const SizedBox(height: Insets.sm),
             JmPhotoDropzone(
               onTap: state.isBusy ? () {} : _pickPhotos,
-              title: 'Add a photo of the problem',
-              subtitle:
-                  'Optional · JPEG, PNG, WebP · 3 photos total · 10 MB each',
+              title: strings.text('add_photo_problem'),
+              subtitle: strings.text('photo_details'),
               photos: state.draft.photos,
               onRemove: state.isBusy ? null : controller.removePhoto,
               height: 120,
@@ -274,9 +358,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
             if (state.isSearchingCluster) ...<Widget>[
               const SizedBox(height: Insets.md),
-              const JmInlineLoader(
-                message: 'Finding similar requests in this area…',
-              ),
+              JmInlineLoader(message: strings.text('finding_similar')),
             ],
 
             const SizedBox(height: Insets.xl),
@@ -293,14 +375,14 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         color: scheme.onPrimary,
                       ),
                     )
-                  : const Text('Submit report'),
+                  : Text(strings.text('submit_report')),
             ),
             const SizedBox(height: Insets.sm),
             Center(
               child: Text(
                 state.draft.canSubmit
-                    ? 'Submit to save your report. Unsent drafts stay only in this tab.'
-                    : 'Add the problem, title and category, then pin its location.',
+                    ? strings.text('submit_hint_ready')
+                    : strings.text('submit_hint_missing'),
                 textAlign: TextAlign.center,
                 style: JanMaangTypography.bodySm.copyWith(
                   color: scheme.onSurfaceVariant,
@@ -367,6 +449,7 @@ class _TypedInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final strings = AppStrings.of(context);
     return JmCard(
       padding: const EdgeInsets.all(Insets.md),
       child: Column(
@@ -396,10 +479,8 @@ class _TypedInput extends StatelessWidget {
             minLines: 3,
             textInputAction: TextInputAction.done,
             style: JanMaangTypography.bodyLg.copyWith(color: scheme.onSurface),
-            decoration: const InputDecoration(
-              hintText:
-                  'e.g. Our village has had no drinking water for two '
-                  'months.',
+            decoration: InputDecoration(
+              hintText: strings.text('report_example'),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,

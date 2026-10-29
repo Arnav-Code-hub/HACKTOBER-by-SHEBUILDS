@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/providers.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -46,6 +47,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
+    final strings = AppStrings.of(context);
     final pulse = ref.watch(communityPulseProvider);
     final nearby = ref.watch(nearbyDemandsProvider);
     final isWide = MediaQuery.sizeOf(context).width >= Breakpoints.medium;
@@ -77,7 +79,9 @@ class HomeScreen extends ConsumerWidget {
                 padding: _gutter,
                 child: JmEnter(
                   child: JmGreetingHeader(
-                    greeting: name.isEmpty ? 'Namaste' : 'Namaste, $name',
+                    greeting: name.isEmpty
+                        ? strings.text('namaste')
+                        : '${strings.text('namaste')}, $name',
                     subtitle: place,
                     initials: _initials(name),
                     hasUnread: AppConfig.useMocks,
@@ -93,8 +97,8 @@ class HomeScreen extends ConsumerWidget {
                 Padding(
                   padding: _gutter,
                   child: JmPillRow(
-                    title: 'My saved reports',
-                    subtitle: 'Reports saved to your account',
+                    title: strings.text('saved_reports'),
+                    subtitle: strings.text('saved_reports_help'),
                     icon: Icons.track_changes,
                     tint: JmTint.blue,
                     onTap: () => context.goNamed(AppRoute.track.name),
@@ -142,7 +146,10 @@ class HomeScreen extends ConsumerWidget {
                             flex: 5,
                             child: JmEnter(
                               index: 4,
-                              child: _CommunityPulse(pulse: pulse),
+                              child: _CommunityPulse(
+                                pulse: pulse,
+                                strings: strings,
+                              ),
                             ),
                           ),
                         ],
@@ -158,7 +165,10 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(height: Insets.lg),
                           JmEnter(
                             index: 4,
-                            child: _CommunityPulse(pulse: pulse),
+                            child: _CommunityPulse(
+                              pulse: pulse,
+                              strings: strings,
+                            ),
                           ),
                         ],
                       ),
@@ -169,7 +179,7 @@ class HomeScreen extends ConsumerWidget {
               Padding(
                 padding: _gutter,
                 child: JmSectionHeader(
-                  title: 'Near you',
+                  title: strings.text('near_you'),
                   icon: Icons.near_me_outlined,
                   actionLabel: 'Demo map',
                   onAction: () => context.pushNamed(AppRoute.map.name),
@@ -206,9 +216,9 @@ class HomeScreen extends ConsumerWidget {
                     if (demands.isEmpty) {
                       return JmEmptyState(
                         icon: Icons.explore_off_outlined,
-                        title: 'Nothing reported near you yet',
-                        message: 'Be the first to tell us what your community needs.',
-                        actionLabel: 'Report a need',
+                        title: strings.text('nothing_nearby'),
+                        message: strings.text('be_first'),
+                        actionLabel: strings.text('report_a_need'),
                         onAction: () =>
                             _startReport(context, ReportChannel.voice),
                       );
@@ -249,8 +259,8 @@ class HomeScreen extends ConsumerWidget {
                     JmEnter(
                       index: 10,
                       child: JmPillRow(
-                        title: 'Where the money goes',
-                        subtitle: 'Every allocation, traceable',
+                        title: strings.text('money_goes'),
+                        subtitle: strings.text('every_allocation'),
                         icon: Icons.account_balance_wallet_outlined,
                         tint: JmTint.green,
                         onTap: () => context.goNamed(AppRoute.ledger.name),
@@ -260,8 +270,8 @@ class HomeScreen extends ConsumerWidget {
                     JmEnter(
                       index: 11,
                       child: JmPillRow(
-                        title: 'Methodology & data sources',
-                        subtitle: 'How these figures are built',
+                        title: strings.text('methodology'),
+                        subtitle: strings.text('figures_built'),
                         icon: Icons.science_outlined,
                         tint: JmTint.blue,
                         onTap: () => context.pushNamed(AppRoute.method.name),
@@ -405,17 +415,18 @@ class _CategoryScroller extends StatelessWidget {
 /// Four figures, four colours, four icons. Colour sorts them at a glance and
 /// the icons carry the same sorting for anyone the colour does not reach.
 class _CommunityPulse extends StatelessWidget {
-  const _CommunityPulse({required this.pulse});
+  const _CommunityPulse({required this.pulse, required this.strings});
 
   final AsyncValue<CommunityPulse> pulse;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const JmSectionHeader(
-          title: 'Community pulse',
+        JmSectionHeader(
+          title: strings.text('community_pulse'),
           icon: Icons.insights_outlined,
         ),
         const SizedBox(height: Insets.md),
@@ -433,25 +444,25 @@ class _CommunityPulse extends StatelessWidget {
             children: <Widget>[
               JmTintTile(
                 value: data.activeDemands,
-                label: 'Active demands',
+                label: strings.text('active_demands'),
                 icon: Icons.campaign_outlined,
                 tint: JmTint.navy,
               ),
               JmTintTile(
                 value: data.peopleAffected,
-                label: 'People affected',
+                label: strings.text('people_affected'),
                 icon: Icons.groups_outlined,
                 tint: JmTint.blue,
               ),
               JmTintTile(
                 value: data.underReview,
-                label: 'Under review',
+                label: strings.text('under_review'),
                 icon: Icons.hourglass_top_outlined,
                 tint: JmTint.amber,
               ),
               JmTintTile(
                 value: data.funded,
-                label: 'Funded',
+                label: strings.text('funded'),
                 icon: Icons.verified_outlined,
                 tint: JmTint.green,
               ),

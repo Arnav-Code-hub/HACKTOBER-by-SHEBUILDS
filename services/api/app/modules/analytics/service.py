@@ -8,4 +8,16 @@ Aggregations powering the role dashboards.
 # into its own service later without touching a single caller.
 """
 
-# TODO(analytics): service functions.
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import Principal
+from app.modules.analytics import repository
+from app.modules.analytics.schemas import PublicTransparency, StaffWorkloadList
+
+
+async def public_transparency(session: AsyncSession) -> PublicTransparency:
+    return await repository.public_dashboard(session)
+
+
+async def staff_workload(session: AsyncSession, principal: Principal) -> StaffWorkloadList:
+    return await repository.workload(session, principal)

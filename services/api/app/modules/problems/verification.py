@@ -10,7 +10,8 @@ from app.core.idempotency import RequestIdentity, StoredResponse, request_hash
 from app.core.roles import Role
 from app.core.security import Principal
 from app.integrations.cloudinary import MediaProvider
-from app.modules.problems.models import Cluster, Report, WorkOrder
+from app.modules.notifications.service import publish_case_update
+from app.modules.problems.models import Cluster, Report, Support, WorkOrder
 from app.modules.problems.schemas import StatusAck, VerificationRead, VerifyWorkOrder
 from app.modules.problems.work_orders import evidence_for_order
 from app.persistence.idempotency import SqlIdempotencyStore
@@ -116,6 +117,32 @@ async def verify_work_order(
             reason=None,
             expected_round=body.expected_round,
             comment=body.comment,
+        )
+        recipients = await session.scalars(
+            select(Report.reporter_id).where(Report.cluster_id == work.cluster_id).distinct()
+        )
+        supporters = await session.scalars(
+            select(Support.user_id).where(Support.cluster_id == work.cluster_id).distinct()
+        )
+        await publish_case_update(
+            session,
+            [*recipients.all(), *supporters.all()],
+            # Per round and verdict, so a returned round never collides with
+            # "work started" or with the next round's verdict.
+            event_key=(
+                f"cluster.verdict.round.{body.expected_round}."
+                f"{'confirmed' if body.verdict else 'returned'}"
+            ),
+            title=(
+                "Repair confirmed by a citizen" if body.verdict else "Repair needs another attempt"
+            ),
+            body=(
+                "A citizen confirmed the completed repair."
+                if body.verdict
+                else "A citizen requested more work. New completion evidence will be shared."
+            ),
+            resource_type="cluster",
+            resource_id=work.cluster_id,
         )
         return StoredResponse(
             200, StatusAck(id=work.id, status=snapshot.status).model_dump(mode="json")

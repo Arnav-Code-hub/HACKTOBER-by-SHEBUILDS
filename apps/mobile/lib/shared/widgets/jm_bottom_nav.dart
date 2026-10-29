@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/janmaang_typography.dart';
 import '../../core/theme/motion.dart';
@@ -67,10 +68,43 @@ class JmBottomNav extends StatelessWidget {
     ),
   ];
 
+  static List<JmNavDestination> localizedDestinations(AppStrings strings) =>
+      <JmNavDestination>[
+        JmNavDestination(
+          label: strings.text('home'),
+          icon: Icons.home_outlined,
+          selectedIcon: Icons.home_rounded,
+        ),
+        JmNavDestination(
+          label: strings.text('track'),
+          icon: Icons.insights_outlined,
+          selectedIcon: Icons.insights_rounded,
+        ),
+        JmNavDestination(
+          label: strings.text('report'),
+          icon: Icons.mic_none_rounded,
+          selectedIcon: Icons.mic_rounded,
+          raised: true,
+        ),
+        JmNavDestination(
+          label: strings.text('ranks'),
+          icon: Icons.emoji_events_outlined,
+          selectedIcon: Icons.emoji_events_rounded,
+        ),
+        JmNavDestination(
+          label: strings.text('ledger'),
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
+        ),
+      ];
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final reduced = Motion.reduced(context);
+    final destinations = JmBottomNav.localizedDestinations(
+      AppStrings.of(context),
+    );
 
     // On a wide window the bar would stretch to absurd proportions, so it is
     // capped and centred instead.

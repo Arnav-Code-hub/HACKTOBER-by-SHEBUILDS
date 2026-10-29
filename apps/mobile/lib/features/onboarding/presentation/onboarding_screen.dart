@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/routing/routes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/janmaang_colors.dart';
 import '../../../core/theme/janmaang_typography.dart';
 import '../../../core/theme/motion.dart';
+import '../../../shared/widgets/app_language_selector.dart';
 import '../../../shared/widgets/jm_logo.dart';
 import '../../../shared/widgets/jm_surfaces.dart';
 
@@ -20,19 +23,19 @@ import '../../../shared/widgets/jm_surfaces.dart';
 ///
 /// Content arrives in a short stagger, top to bottom, so the page assembles
 /// itself rather than appearing all at once.
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   static const _steps = <(IconData, String, String, JmTint)>[
-    (Icons.mic_rounded, 'You speak', 'In your own language', JmTint.navy),
-    (Icons.auto_awesome_rounded, 'We analyse', 'AI structures it', JmTint.blue),
+    (Icons.mic_rounded, 'you_speak', 'your_language', JmTint.navy),
+    (Icons.auto_awesome_rounded, 'we_analyse', 'ai_structures', JmTint.blue),
     (
       Icons.account_balance_rounded,
-      'Funds follow',
-      'Budget is allocated',
+      'funds_follow',
+      'budget_allocated',
       JmTint.green,
     ),
-    (Icons.verified_rounded, 'You verify', 'Citizens confirm it', JmTint.amber),
+    (Icons.verified_rounded, 'you_verify', 'citizens_confirm', JmTint.amber),
   ];
 
   /// Widest the column is allowed to get. Past this a landing page stops
@@ -42,8 +45,9 @@ class OnboardingScreen extends StatelessWidget {
   static const _recentlyFixed = <String>['Streetlights', 'Handpumps', 'Drains'];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final strings = AppStrings.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -80,22 +84,26 @@ class OnboardingScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: AppLanguageSelector(compact: true),
+                        ),
+                        const SizedBox(height: Insets.sm),
                         JmEnter(child: const _Brand()),
                         const SizedBox(height: Insets.lg),
 
                         JmEnter(
                           index: 1,
-                          child: const JmDisplayHeading(
-                            lead: 'Civic action',
-                            emphasis: 'starts here.',
+                          child: JmDisplayHeading(
+                            lead: strings.text('civic_action'),
+                            emphasis: strings.text('starts_here'),
                           ),
                         ),
                         const SizedBox(height: Insets.sm + Insets.xs),
                         JmEnter(
                           index: 2,
                           child: Text(
-                            'No forms. No queues. Just your voice — reported '
-                            'once, then followed all the way to a fix.',
+                            strings.text('landing_intro'),
                             style: JanMaangTypography.bodyMd.copyWith(
                               color: scheme.onSurfaceVariant,
                             ),
@@ -107,7 +115,7 @@ class OnboardingScreen extends StatelessWidget {
                         // The four steps, as a grid rather than a column: the
                         // vertical explainer was the single tallest thing on
                         // this page and the one that forced it to scroll.
-                        const _Steps(),
+                        _Steps(strings: strings),
 
                         const SizedBox(height: Insets.md),
                         JmEnter(index: 7, child: const _ImpactStrip()),
@@ -119,8 +127,8 @@ class OnboardingScreen extends StatelessWidget {
                         JmEnter(
                           index: 9,
                           child: _ArrowCta(
-                            label: "Tell us what's wrong",
-                            hint: 'Voice or text · Available 24/7',
+                            label: strings.text('tell_us'),
+                            hint: strings.text('voice_text'),
                             onTap: () => context.goNamed(AppRoute.login.name),
                           ),
                         ),
@@ -179,7 +187,9 @@ class _Brand extends StatelessWidget {
 
 /// The four-step explainer, two across.
 class _Steps extends StatelessWidget {
-  const _Steps();
+  const _Steps({required this.strings});
+
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +216,12 @@ class _Steps extends StatelessWidget {
                     index: 3 + row * 2 + col,
                     child: _StepTile(
                       number: row * 2 + col + 1,
-                      step: OnboardingScreen._steps[row * 2 + col],
+                      step: (
+                        OnboardingScreen._steps[row * 2 + col].$1,
+                        strings.text(OnboardingScreen._steps[row * 2 + col].$2),
+                        strings.text(OnboardingScreen._steps[row * 2 + col].$3),
+                        OnboardingScreen._steps[row * 2 + col].$4,
+                      ),
                       brightness: brightness,
                     ),
                   ),

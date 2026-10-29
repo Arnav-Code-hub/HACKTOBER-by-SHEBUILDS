@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_strings.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/janmaang_colors.dart';
 import '../../../../core/theme/janmaang_typography.dart';
@@ -20,24 +21,15 @@ class ReportHeroCard extends StatelessWidget {
   final void Function(ReportChannel channel) onStartReport;
 
   static const _secondary = <(IconData, String, String, ReportChannel)>[
-    (Icons.keyboard_outlined, 'Type', 'in any language', ReportChannel.text),
-    (
-      Icons.photo_camera_outlined,
-      'Photo',
-      'show the issue',
-      ReportChannel.photo,
-    ),
-    (
-      Icons.my_location_outlined,
-      'Locate',
-      'pin the spot',
-      ReportChannel.location,
-    ),
+    (Icons.keyboard_outlined, 'type', 'in_any_language', ReportChannel.text),
+    (Icons.photo_camera_outlined, 'photo', 'show_issue', ReportChannel.photo),
+    (Icons.my_location_outlined, 'locate', 'pin_spot', ReportChannel.location),
   ];
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final strings = AppStrings.of(context);
 
     return JmCard(
       padding: const EdgeInsets.all(Insets.md + 2),
@@ -45,7 +37,7 @@ class ReportHeroCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'What does your community need?',
+            strings.text('need_title'),
             style: JanMaangTypography.withWeight(
               JanMaangTypography.titleLg,
               FontWeight.w700,
@@ -53,15 +45,15 @@ class ReportHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Speak in your own language. We will do the rest.',
+            strings.text('speak_own_language'),
             style: JanMaangTypography.bodySm.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: Insets.md),
           JmPillRow(
-            title: 'Report by voice',
-            subtitle: 'Tap and speak',
+            title: strings.text('report_by_voice'),
+            subtitle: strings.text('tap_and_speak'),
             icon: Icons.mic_rounded,
             dark: true,
             trailingIcon: Icons.arrow_forward_rounded,
@@ -75,8 +67,8 @@ class ReportHeroCard extends StatelessWidget {
                 Expanded(
                   child: _SecondaryAction(
                     icon: _secondary[i].$1,
-                    label: _secondary[i].$2,
-                    hint: _secondary[i].$3,
+                    label: strings.text(_secondary[i].$2),
+                    hint: strings.text(_secondary[i].$3),
                     onTap: () => onStartReport(_secondary[i].$4),
                   ),
                 ),

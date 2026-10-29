@@ -572,6 +572,94 @@ export interface paths {
         patch: operations["change_user_api_v1_admin_users__identity__patch"];
         trace?: never;
     };
+    "/api/v1/admin/users/{identity}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change User Status */
+        patch: operations["change_user_status_api_v1_admin_users__identity__status_patch"];
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inbox */
+        get: operations["inbox_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark Read */
+        post: operations["mark_read_api_v1_notifications__notification_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Transparency
+         * @description Anonymous aggregate only. Reporter identity and exact coordinates stay private.
+         */
+        get: operations["public_transparency_api_v1_analytics_public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/workload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff Workload */
+        get: operations["staff_workload_api_v1_analytics_workload_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -634,6 +722,15 @@ export interface components {
             institute_id: string | null;
             /** Organization Id */
             organization_id: string | null;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** AdminUserStatusChange */
+        AdminUserStatusChange: {
+            /** Is Active */
+            is_active: boolean;
+            /** Reason */
+            reason: string;
         };
         /** AssignCluster */
         AssignCluster: {
@@ -738,6 +835,23 @@ export interface components {
             /** District Name */
             district_name: string | null;
         };
+        /** DistrictTransparency */
+        DistrictTransparency: {
+            /** District Name */
+            district_name: string;
+            /** Report Count */
+            report_count: number;
+            /** Cluster Count */
+            cluster_count: number;
+            /** Active Cases */
+            active_cases: number;
+            /** Citizen Verified Cases */
+            citizen_verified_cases: number;
+            /** Allocated Paise */
+            allocated_paise: number;
+            /** Last Updated */
+            last_updated: string | null;
+        };
         /** EvidencePhotoRead */
         EvidencePhotoRead: {
             /** Url */
@@ -824,6 +938,54 @@ export interface components {
             /** Thumbnail Url */
             thumbnail_url: string;
         };
+        /** NotificationAck */
+        NotificationAck: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Read At
+             * Format: date-time
+             */
+            read_at: string;
+        };
+        /** NotificationList */
+        NotificationList: {
+            /** Items */
+            items: components["schemas"]["NotificationRead"][];
+            /** Unread Count */
+            unread_count: number;
+        };
+        /** NotificationRead */
+        NotificationRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Event Key */
+            event_key: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Resource Type */
+            resource_type: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Read At */
+            read_at: string | null;
+        };
         /** OfficerList */
         OfficerList: {
             /** Items */
@@ -909,6 +1071,36 @@ export interface components {
          * @enum {string}
          */
         ProblemStatus: "reported" | "verified" | "rejected" | "prioritised" | "funded" | "in_progress" | "awaiting_verification" | "citizen_verified";
+        /** PublicTransparency */
+        PublicTransparency: {
+            /** Updated At */
+            updated_at: string | null;
+            /**
+             * Demo Data Excluded
+             * @default true
+             */
+            demo_data_excluded: boolean;
+            /** Report Count */
+            report_count: number;
+            /** Cluster Count */
+            cluster_count: number;
+            /** Active Cases */
+            active_cases: number;
+            /** Citizen Verified Cases */
+            citizen_verified_cases: number;
+            /** Allocated Paise */
+            allocated_paise: number;
+            /** Reports By Status */
+            reports_by_status: {
+                [key: string]: number;
+            };
+            /** Clusters By Status */
+            clusters_by_status: {
+                [key: string]: number;
+            };
+            /** Districts */
+            districts: components["schemas"]["DistrictTransparency"][];
+        };
         /** RankedCluster */
         RankedCluster: {
             /**
@@ -1111,6 +1303,35 @@ export interface components {
          * @enum {string}
          */
         Severity: "low" | "medium" | "high" | "critical";
+        /** StaffWorkload */
+        StaffWorkload: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /** Department Name */
+            department_name: string | null;
+            /** Open Work Orders */
+            open_work_orders: number;
+            /** Funded */
+            funded: number;
+            /** In Progress */
+            in_progress: number;
+            /** Awaiting Verification */
+            awaiting_verification: number;
+            /** Oldest Open Assignment */
+            oldest_open_assignment: string | null;
+        };
+        /** StaffWorkloadList */
+        StaffWorkloadList: {
+            /** Items */
+            items: components["schemas"]["StaffWorkload"][];
+        };
         /** StatementCreate */
         StatementCreate: {
             /** Title */
@@ -2583,6 +2804,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_user_status_api_v1_admin_users__identity__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserStatusChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inbox_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                unread_only?: boolean;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_read_api_v1_notifications__notification_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationAck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_transparency_api_v1_analytics_public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTransparency"];
+                };
+            };
+        };
+    };
+    staff_workload_api_v1_analytics_workload_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffWorkloadList"];
                 };
             };
         };

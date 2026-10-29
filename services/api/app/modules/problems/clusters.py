@@ -14,6 +14,7 @@ from app.core.roles import Role
 from app.core.scope import require_district
 from app.core.security import Principal
 from app.modules.departments.service import department_categories, responsible_department
+from app.modules.notifications.service import publish_case_update
 from app.modules.problems.models import Cluster, Report, Support
 from app.modules.problems.ranking import score_cluster
 from app.modules.problems.repository import ClusterSnapshot, cluster_snapshots
@@ -61,6 +62,17 @@ async def validate_report(
         actor=principal,
         reason=body.reason,
     )
+    report = await session.get(Report, report_id)
+    if report is not None:
+        await publish_case_update(
+            session,
+            [report.reporter_id],
+            event_key=f"report.status.{snapshot.status}",
+            title="Your report was reviewed",
+            body=f"Report {report.code} is now {snapshot.status.replace('_', ' ')}.",
+            resource_type="report",
+            resource_id=report.id,
+        )
     return StatusAck(id=report_id, status=snapshot.status)
 
 
@@ -77,6 +89,17 @@ async def assign_cluster(
         reason=None,
         cluster_id=body.cluster_id,
     )
+    report = await session.get(Report, report_id)
+    if report is not None:
+        await publish_case_update(
+            session,
+            [report.reporter_id],
+            event_key=f"report.status.{snapshot.status}",
+            title="Your report joined a community case",
+            body=f"Report {report.code} is now part of a tracked community case.",
+            resource_type="report",
+            resource_id=report.id,
+        )
     return StatusAck(id=report_id, status=snapshot.status)
 
 

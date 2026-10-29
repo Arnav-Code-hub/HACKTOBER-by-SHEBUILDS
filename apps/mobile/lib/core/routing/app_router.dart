@@ -15,6 +15,7 @@ import '../../features/map/presentation/full_map_screen.dart';
 import '../../features/leaderboard/presentation/leaderboard_screen.dart';
 import '../../features/ledger/presentation/ledger_screen.dart';
 import '../../features/method/presentation/method_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/report/presentation/report_screen.dart';
@@ -237,6 +238,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoute.profile.name,
         parentNavigatorKey: _rootKey,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.notifications.path,
+        name: AppRoute.notifications.name,
+        parentNavigatorKey: _rootKey,
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: AppRoute.map.path,
