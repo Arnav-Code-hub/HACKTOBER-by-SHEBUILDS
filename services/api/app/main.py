@@ -18,6 +18,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.rate_limit import SuggestionRateLimiter
 from app.integrations.firebase import FirebaseTokenVerifier
+from app.modules.analytics.router import router as analytics_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.service import DatabaseAuthenticator
@@ -50,6 +51,7 @@ MODULE_ROUTERS = (
     funding_router,
     files_router,
     audit_router,
+    analytics_router,
 )
 
 

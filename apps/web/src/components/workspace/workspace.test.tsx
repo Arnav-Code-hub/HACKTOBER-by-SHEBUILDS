@@ -135,6 +135,56 @@ describe("ActionForm", () => {
     { name: "notes", label: "Notes", kind: "textarea" as const },
   ];
 
+  it("identifies every invalid field and focuses a linked error summary", () => {
+    const submit = vi.fn();
+    render(
+      <ActionForm
+        title="Fund"
+        fields={[
+          ...fields,
+          { name: "officer", label: "Officer", kind: "select", required: true },
+        ]}
+        submitLabel="Save"
+        onSubmit={submit}
+      />,
+    );
+    fireEvent.click(screen.getByText("Save"));
+    const summary = screen.getByRole("alert");
+    expect(document.activeElement).toBe(summary);
+    for (const label of ["Amount", "Officer"]) {
+      const field = screen.getByLabelText(new RegExp(label));
+      expect(field.getAttribute("aria-invalid")).toBe("true");
+      const errorId = field.getAttribute("aria-describedby")!;
+      expect(document.getElementById(errorId)?.textContent).toBe(
+        `${label} is required.`,
+      );
+      const link = screen.getByRole("link", { name: `${label} is required.` });
+      expect(link.getAttribute("href")).toBe(`#${field.id}`);
+      fireEvent.click(link);
+      expect(document.activeElement).toBe(field);
+    }
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("moves focus into confirmation and returns it on cancel without losing input", () => {
+    render(
+      <ActionForm
+        title="Fund"
+        fields={fields}
+        submitLabel="Save"
+        confirm={() => "Allocate this amount?"}
+        onSubmit={vi.fn()}
+      />,
+    );
+    const amount = screen.getByLabelText(/Amount/);
+    fireEvent.change(amount, { target: { value: "12" } });
+    fireEvent.click(screen.getByText("Save"));
+    expect(document.activeElement).toBe(screen.getByText("Confirm"));
+    fireEvent.click(screen.getByText("Cancel"));
+    expect(document.activeElement).toBe(screen.getByText("Save"));
+    expect((amount as HTMLInputElement).value).toBe("12");
+  });
+
   it("converts rupees to paise and confirms before a consequential write", async () => {
     const submit = vi.fn().mockResolvedValue("Allocation recorded.");
     render(

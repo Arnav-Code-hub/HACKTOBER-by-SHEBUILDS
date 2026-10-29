@@ -1958,6 +1958,28 @@
           }
         }
       }
+    },
+    "/api/v1/analytics/public": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Public Transparency",
+        "description": "Public non-demo totals, with no authentication or personal records.",
+        "operationId": "public_transparency_api_v1_analytics_public_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTransparency"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2881,6 +2903,82 @@
         ],
         "title": "ProblemStatus",
         "description": "The agreed report lifecycle. Mirrored by the Flutter mapping in\napps/mobile/lib/features/report/data/report_dto.dart and documented in\ndocs/api/day1-frontend-contract.md \u2014 change all three together.\n\nVERIFIED means validated by the Panchayat. Citizen confirmation of a repair\nis CITIZEN_VERIFIED."
+      },
+      "PublicTransparency": {
+        "properties": {
+          "report_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Report Count"
+          },
+          "cluster_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cluster Count"
+          },
+          "active_cases": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Active Cases"
+          },
+          "citizen_verified_cases": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Citizen Verified Cases"
+          },
+          "reports_by_status": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ProblemStatus"
+            },
+            "type": "object",
+            "title": "Reports By Status"
+          },
+          "clusters_by_status": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ProblemStatus"
+            },
+            "type": "object",
+            "title": "Clusters By Status"
+          },
+          "demo_data_excluded": {
+            "type": "boolean",
+            "const": true,
+            "title": "Demo Data Excluded",
+            "default": true
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "report_count",
+          "cluster_count",
+          "active_cases",
+          "citizen_verified_cases",
+          "reports_by_status",
+          "clusters_by_status",
+          "updated_at"
+        ],
+        "title": "PublicTransparency",
+        "description": "Anonymous aggregate counts; complaints and grouped cases are distinct."
       },
       "RankedCluster": {
         "properties": {

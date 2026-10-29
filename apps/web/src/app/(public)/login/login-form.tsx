@@ -12,6 +12,7 @@ export function LoginForm() {
   const { state, signIn, signOut } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -41,7 +42,7 @@ export function LoginForm() {
   }
 
   return (
-    <main className="jm-page jm-login-page">
+    <main className="jm-page jm-login-page" id="main-content" tabIndex={-1}>
       <Link className="jm-wordmark" href="/">
         JanMaang<span> / workspace</span>
       </Link>
@@ -53,12 +54,18 @@ export function LoginForm() {
             <br />A clear responsibility.
           </h1>
           <p>
-            Sign in to the role and district assigned to your account. Role
-            access is confirmed by the JanMaang API.
+            Sign in to continue work for your assigned role and district. Your
+            account takes you to the right workspace.
           </p>
           <div className="jm-login-note">
-            Citizens use the Flutter app to report problems and verify repairs.
-            This workspace serves staff and partner roles.
+            Reporting a local problem or checking a repair?{" "}
+            <a
+              className="jm-text-link"
+              href="https://hacktober-by-she-builds.web.app"
+            >
+              Open citizen app
+            </a>
+            . This workspace is for staff and partners.
           </div>
         </section>
         <section className="jm-panel jm-login-card">
@@ -67,31 +74,50 @@ export function LoginForm() {
               <span className="jm-badge">Staff & partners</span>
               <h2>Sign in</h2>
               <p className="jm-muted">
-                Use a provisioned Firebase email/password account.
+                Use the email and password provided by your administrator.
               </p>
-              <form onSubmit={(event) => void submit(event)}>
+              <form onSubmit={(event) => void submit(event)} aria-busy={busy}>
                 <label htmlFor="email">Email address</label>
                 <input
                   id="email"
                   type="email"
                   autoComplete="username"
+                  name="email"
+                  aria-describedby={error ? "sign-in-error" : undefined}
                   required
                   value={email}
                   disabled={busy}
                   onChange={(event) => setEmail(event.target.value)}
                 />
                 <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  disabled={busy}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
+                <div className="jm-password-field">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    aria-describedby={error ? "sign-in-error" : undefined}
+                    required
+                    value={password}
+                    disabled={busy}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="jm-button jm-button-secondary"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    aria-controls="password"
+                    aria-pressed={showPassword}
+                    disabled={busy}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {error && (
-                  <p className="jm-form-error" role="alert">
+                  <p className="jm-form-error" id="sign-in-error" role="alert">
                     {error}
                   </p>
                 )}
@@ -100,8 +126,8 @@ export function LoginForm() {
                 </button>
               </form>
               <p className="jm-small">
-                Need access? An administrator must create your account and
-                assign its backend profile.
+                Need access? Contact your organization’s administrator to set up
+                your account and role.
               </p>
             </>
           ) : state.status === "authenticated" &&
@@ -110,8 +136,16 @@ export function LoginForm() {
               <span className="jm-badge">Citizen account</span>
               <h2>You are signed in</h2>
               <p>
-                Citizen reporting is available in the Flutter app. This account
-                has no staff dashboard access.
+                Use the citizen app to report problems, track progress and
+                verify repairs. Your account does not have a staff workspace.
+              </p>
+              <p>
+                <a
+                  className="jm-button"
+                  href="https://hacktober-by-she-builds.web.app"
+                >
+                  Open citizen app
+                </a>
               </p>
               <button
                 className="jm-button jm-button-secondary"

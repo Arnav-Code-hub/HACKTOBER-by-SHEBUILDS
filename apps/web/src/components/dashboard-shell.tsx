@@ -38,7 +38,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   if (state.status !== "authenticated")
     return (
-      <main className="jm-page">
+      <main className="jm-page" id="main-content" tabIndex={-1}>
         <Link className="jm-wordmark" href="/">
           JanMaang<span> / workspace</span>
         </Link>
@@ -48,16 +48,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const { profile } = state;
   if (!canEnter(segment, profile.role)) {
     return (
-      <main className="jm-page">
+      <main className="jm-page" id="main-content" tabIndex={-1}>
         <div className="jm-status" role="alert">
           <span className="jm-badge">Access denied</span>
           <h1>This workspace is outside your role</h1>
           <p>
-            Your backend profile is assigned to {ROLE_LABEL[profile.role]}.
-            Contact an administrator if this is incorrect.
+            Your account is assigned to {ROLE_LABEL[profile.role]}. Contact an
+            administrator if this is incorrect.
           </p>
           <Link className="jm-button" href={ROLE_HOME[profile.role]}>
-            Go to your home
+            {profile.role === "citizen" ? "Go to home" : "Open your workspace"}
           </Link>
         </div>
       </main>
@@ -89,8 +89,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           Your access
           <br />
           <span>
-            Every list and action is scoped by the JanMaang API to your role and
-            organisation.
+            You see the records and actions available to your role and
+            organization.
           </span>
         </div>
       </aside>
@@ -109,7 +109,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             Sign out
           </button>
         </header>
-        <main className="jm-content">{children}</main>
+        <main className="jm-content" id="main-content" tabIndex={-1}>
+          {children}
+        </main>
       </div>
     </div>
   );

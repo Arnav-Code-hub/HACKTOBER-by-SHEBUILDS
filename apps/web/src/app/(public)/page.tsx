@@ -1,8 +1,10 @@
 import Link from "next/link";
 
+import { PublicAnalytics } from "@/features/analytics/components/public-analytics";
+
 export default function LandingPage() {
   return (
-    <main className="jm-page jm-landing">
+    <main className="jm-page jm-landing" id="main-content" tabIndex={-1}>
       <header className="jm-landing-header">
         <Link className="jm-wordmark" href="/">
           JanMaang
@@ -18,13 +20,22 @@ export default function LandingPage() {
           <br />a visible path to resolution.
         </h1>
         <p>
-          JanMaang is being built to connect citizen reports, district
-          priorities, funding, and citizen verification in one shared record.
+          JanMaang connects citizen reports, district priorities, funding, and
+          citizen verification in one shared record.
         </p>
-        <Link className="jm-button" href="/login">
-          Open your workspace <span aria-hidden="true">→</span>
-        </Link>
+        <div className="jm-button-row">
+          <a
+            className="jm-button"
+            href="https://hacktober-by-she-builds.web.app"
+          >
+            Report or track a problem <span aria-hidden="true">→</span>
+          </a>
+          <Link className="jm-button jm-button-secondary" href="/login">
+            Staff & partner sign-in
+          </Link>
+        </div>
       </section>
+      <PublicAnalytics />
       <ol className="jm-journey">
         <li>
           <span>01</span>
@@ -43,8 +54,8 @@ export default function LandingPage() {
         </li>
       </ol>
       <p className="jm-small">
-        Day 1 development build. Staff login requires Firebase configuration and
-        a provisioned API profile. Business workflows are still being connected.
+        JanMaang is a demonstration prototype. Sample data is labelled; recorded
+        allocations and pledges do not transfer money.
       </p>
     </main>
   );

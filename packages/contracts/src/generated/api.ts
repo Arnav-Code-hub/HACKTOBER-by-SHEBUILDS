@@ -572,6 +572,26 @@ export interface paths {
         patch: operations["change_user_api_v1_admin_users__identity__patch"];
         trace?: never;
     };
+    "/api/v1/analytics/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public Transparency
+         * @description Public non-demo totals, with no authentication or personal records.
+         */
+        get: operations["public_transparency_api_v1_analytics_public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -909,6 +929,36 @@ export interface components {
          * @enum {string}
          */
         ProblemStatus: "reported" | "verified" | "rejected" | "prioritised" | "funded" | "in_progress" | "awaiting_verification" | "citizen_verified";
+        /**
+         * PublicTransparency
+         * @description Anonymous aggregate counts; complaints and grouped cases are distinct.
+         */
+        PublicTransparency: {
+            /** Report Count */
+            report_count: number;
+            /** Cluster Count */
+            cluster_count: number;
+            /** Active Cases */
+            active_cases: number;
+            /** Citizen Verified Cases */
+            citizen_verified_cases: number;
+            /** Reports By Status */
+            reports_by_status: {
+                [key: string]: number;
+            };
+            /** Clusters By Status */
+            clusters_by_status: {
+                [key: string]: number;
+            };
+            /**
+             * Demo Data Excluded
+             * @default true
+             * @constant
+             */
+            demo_data_excluded: true;
+            /** Updated At */
+            updated_at: string | null;
+        };
         /** RankedCluster */
         RankedCluster: {
             /**
@@ -2583,6 +2633,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    public_transparency_api_v1_analytics_public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTransparency"];
                 };
             };
         };

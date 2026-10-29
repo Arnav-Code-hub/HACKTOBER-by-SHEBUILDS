@@ -47,7 +47,8 @@ export const SEGMENT_ROLES: Record<string, readonly Role[]> = {
   institute: ["institute", "super_admin"],
   panchayat: ["panchayat", "gov_admin", "super_admin"],
   department: ["department", "gov_admin", "super_admin"],
-  officer: ["officer", "department", "super_admin"],
+  // This page uses the assigned-officer endpoint, not an oversight view.
+  officer: ["officer"],
   industry: ["industry", "super_admin"],
   admin: ["gov_admin", "super_admin"],
 };

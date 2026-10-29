@@ -39,6 +39,11 @@ body {
 a {
   color: inherit;
 }
+.jm-text-link,
+.jm-form-error a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 button,
 input {
   font: inherit;
@@ -51,6 +56,20 @@ input {
 :focus-visible {
   outline: 3px solid var(--jm-density-tier1);
   outline-offset: 4px;
+}
+.jm-skip-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--jm-card);
+  color: var(--jm-on-surface);
+  border-radius: var(--jm-radius-sm);
+  transform: translateY(-200%);
+}
+.jm-skip-link:focus {
+  transform: translateY(0);
 }
 h1,
 h2,
@@ -188,6 +207,16 @@ code {
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
 }
+.jm-public-analytics {
+  margin-bottom: 3rem;
+}
+.jm-public-analytics .jm-details > div {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.jm-public-analytics summary {
+  cursor: pointer;
+  min-height: 44px;
+}
 .jm-journey li {
   padding: 1.6rem;
   border-radius: var(--jm-radius-xl);
@@ -270,6 +299,18 @@ code {
   background: var(--jm-surface);
   color: var(--jm-on-surface);
   margin-bottom: 0.7rem;
+}
+.jm-password-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.jm-password-field input {
+  flex: 1;
+  min-width: 0;
+}
+.jm-password-field button {
+  flex-shrink: 0;
 }
 .jm-form-error {
   color: var(--jm-density-tier5);
@@ -660,12 +701,18 @@ code {
   border-color: var(--jm-density-tier5);
 }
 .jm-button-small {
-  min-height: 34px;
+  min-height: 44px;
   padding: 0.3rem 0.85rem;
   font-size: 0.78rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .jm-table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+}
+.jm-table-actions {
+  white-space: nowrap;
 }
 .jm-table {
   width: 100%;

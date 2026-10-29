@@ -2,13 +2,14 @@
 
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import AuditEvent
 from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError, ValidationError
 from app.core.roles import Role
 from app.core.security import Principal
+from app.modules.analytics.schemas import PublicTransparency
 from app.modules.audit.models import AuditEventRecord
 from app.modules.audit.schemas import (
     AdminSummary,
@@ -31,6 +32,54 @@ from app.shared.enums import ProblemStatus as Status
 
 # Work an officer still has to carry out or see verified.
 OPEN_WORK = (Status.FUNDED, Status.IN_PROGRESS, Status.AWAITING_VERIFICATION)
+
+
+async def public_transparency(session: AsyncSession) -> PublicTransparency:
+    """Read only aggregate live data; report status follows its community case."""
+    status = func.coalesce(Cluster.status, Report.status).label("status")
+    reports = (
+        select(
+            literal("report").label("kind"),
+            status,
+            func.count().label("total"),
+            func.max(Report.status_changed_at).label("updated_at"),
+        )
+        .select_from(Report)
+        .outerjoin(Cluster, Report.cluster_id == Cluster.id)
+        .where(
+            Report.is_demo.is_(False),
+            or_(Cluster.id.is_(None), Cluster.is_demo.is_(False)),
+        )
+        .group_by(status)
+    )
+    cases = (
+        select(
+            literal("case").label("kind"),
+            Cluster.status.label("status"),
+            func.count().label("total"),
+            func.max(Cluster.status_changed_at).label("updated_at"),
+        )
+        .where(Cluster.is_demo.is_(False))
+        .group_by(Cluster.status)
+    )
+    # One statement gives both aggregates the same READ COMMITTED snapshot.
+    rows = (await session.execute(reports.union_all(cases))).all()
+    report_counts = {row.status: row.total for row in rows if row.kind == "report"}
+    case_counts = {row.status: row.total for row in rows if row.kind == "case"}
+    updates = [row.updated_at for row in rows if row.updated_at is not None]
+    return PublicTransparency(
+        report_count=sum(report_counts.values()),
+        cluster_count=sum(case_counts.values()),
+        active_cases=sum(
+            count
+            for status, count in case_counts.items()
+            if status not in {Status.CITIZEN_VERIFIED, Status.REJECTED}
+        ),
+        citizen_verified_cases=case_counts.get(Status.CITIZEN_VERIFIED, 0),
+        reports_by_status=report_counts,
+        clusters_by_status=case_counts,
+        updated_at=max(updates) if updates else None,
+    )
 
 
 def require_admin(principal: Principal, *, super_only: bool = False) -> None:

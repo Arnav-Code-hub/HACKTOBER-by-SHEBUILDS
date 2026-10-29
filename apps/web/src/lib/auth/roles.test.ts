@@ -26,10 +26,17 @@ describe("role routing", () => {
     expect(canEnter("panchayat", "student")).toBe(false);
   });
 
-  it("admits super_admin everywhere", () => {
+  it("admits super_admin to oversight workspaces, not assigned officer work", () => {
     for (const segment of Object.keys(SEGMENT_ROLES)) {
-      expect(canEnter(segment, "super_admin"), segment).toBe(true);
+      expect(canEnter(segment, "super_admin"), segment).toBe(
+        segment !== "officer",
+      );
     }
+  });
+
+  it("keeps assigned officer work exclusive to officers", () => {
+    expect(canEnter("officer", "officer")).toBe(true);
+    expect(canEnter("officer", "department")).toBe(false);
   });
 
   it("never routes a citizen into a web dashboard segment", () => {
@@ -45,13 +52,15 @@ describe("role routing", () => {
 
 describe("login destinations", () => {
   it("preserves an authorized existing dashboard destination", () => {
-    expect(dashboardDestination("/officer", "department")).toBe("/officer");
+    expect(dashboardDestination("/officer", "officer")).toBe("/officer");
     expect(dashboardDestination("/faculty/", "institute")).toBe("/faculty");
   });
 
   it("falls back to the backend-assigned role home for unauthorized routes", () => {
     expect(dashboardDestination("/admin", "student")).toBe("/student");
     expect(dashboardDestination("/officer", "citizen")).toBe("/");
+    expect(dashboardDestination("/officer", "department")).toBe("/department");
+    expect(dashboardDestination("/officer", "super_admin")).toBe("/admin");
     expect(dashboardDestination(null, "gov_admin")).toBe("/admin");
   });
 
