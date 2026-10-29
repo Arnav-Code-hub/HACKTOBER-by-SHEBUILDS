@@ -1,8 +1,9 @@
 """Scoped aggregate queries and atomic privileged user changes."""
 
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, func, literal, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -23,6 +24,7 @@ from app.modules.audit.schemas import (
     AdminUserList,
     AdminUserRead,
     AdminUserStatusChange,
+    AuditCursor,
     AuditList,
     AuditRead,
     OrganizationList,
@@ -273,20 +275,44 @@ async def staff_workload(
     )
 
 
-async def audit_list(session: AsyncSession, principal: Principal, limit: int) -> AuditList:
+# Contact details stay out of audit views; the users list is super-admin only.
+PRIVATE_AUDIT_KEYS = frozenset({"email"})
+
+
+def _public(values: dict[str, Any] | None) -> dict[str, Any] | None:
+    if values is None:
+        return None
+    return {key: value for key, value in values.items() if key not in PRIVATE_AUDIT_KEYS}
+
+
+async def audit_list(
+    session: AsyncSession,
+    principal: Principal,
+    limit: int,
+    before: AuditCursor | None = None,
+) -> AuditList:
     require_admin(principal)
     query = select(AuditEventRecord, User.display_name).join(
         User, AuditEventRecord.actor_id == User.id
     )
     if principal.role != Role.SUPER_ADMIN:
         query = query.where(AuditEventRecord.district_id == principal.district_id)
+    if before is not None:
+        # Keyset paging on the same (time, id) order: no gaps or repeats when
+        # new events arrive between pages.
+        query = query.where(
+            tuple_(AuditEventRecord.created_at, AuditEventRecord.id)
+            < tuple_(literal(before.before_at), literal(before.before_id))
+        )
     rows = (
         await session.execute(
             query.order_by(AuditEventRecord.created_at.desc(), AuditEventRecord.id.desc()).limit(
-                limit
+                limit + 1
             )
         )
     ).all()
+    page, more = rows[:limit], len(rows) > limit
+    last = page[-1][0] if page else None
     return AuditList(
         items=[
             AuditRead(
@@ -298,9 +324,12 @@ async def audit_list(session: AsyncSession, principal: Principal, limit: int) ->
                 entity_type=e.entity_type,
                 entity_id=e.entity_id,
                 reason=e.reason,
+                before=_public(e.before),
+                after=_public(e.after),
             )
-            for e, name in rows
-        ]
+            for e, name in page
+        ],
+        next=AuditCursor(before_at=last.created_at, before_id=last.id) if more and last else None,
     )
 
 

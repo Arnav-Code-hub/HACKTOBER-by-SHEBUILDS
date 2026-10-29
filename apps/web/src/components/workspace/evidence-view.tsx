@@ -72,6 +72,21 @@ export function EvidenceView({
           )}
         </figure>
       </div>
+      {evidence.after_round && evidence.status === "in_progress" && (
+        <div className="jm-correction-brief" role="note">
+          <h3 className="jm-subheading">
+            Why the citizen returned round {evidence.after_round}
+          </h3>
+          {evidence.returned_comment ? (
+            <blockquote>{evidence.returned_comment}</blockquote>
+          ) : (
+            <p className="jm-muted">
+              The citizen returned it without a comment. Compare the photos with
+              the original report.
+            </p>
+          )}
+        </div>
+      )}
       <p className="jm-notice">
         Evidence for human review — matching photos are not proof that a repair
         happened. Only the original reporter&rsquo;s verdict marks a case

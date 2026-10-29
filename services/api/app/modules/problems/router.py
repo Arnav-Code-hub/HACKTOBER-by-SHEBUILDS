@@ -12,9 +12,17 @@ from app.core.errors import PermissionDeniedError
 from app.core.security import Principal, get_current_principal
 from app.integrations.cloudinary import MediaProvider, get_media_provider
 from app.integrations.gemini import SuggestionProvider, get_suggestion_provider
-from app.modules.problems import clusters, service, suggestions, verification, work_orders
+from app.modules.problems import (
+    cases,
+    clusters,
+    service,
+    suggestions,
+    verification,
+    work_orders,
+)
 from app.modules.problems.schemas import (
     AssignCluster,
+    CaseList,
     ClusterSuggestions,
     CompleteWorkOrder,
     EvidenceRead,
@@ -40,6 +48,7 @@ from app.modules.problems.schemas import (
 router = APIRouter(prefix="/reports", tags=["Reports"])
 clusters_router = APIRouter(prefix="/clusters", tags=["Clusters"])
 work_orders_router = APIRouter(prefix="/work-orders", tags=["Work orders"])
+cases_router = APIRouter(prefix="/cases", tags=["Cases"])
 
 IdempotencyKey = Header(alias="Idempotency-Key", min_length=1, max_length=200, pattern=r"\S")
 
@@ -225,3 +234,12 @@ async def verify_work_order(
 ) -> JSONResponse:
     result = await verification.verify_work_order(session, principal, work_order_id, body, key)
     return JSONResponse(status_code=result.status_code, content=result.body)
+
+
+@cases_router.get("", response_model=CaseList)
+async def case_list(
+    limit: int = Query(default=200, ge=1, le=200),
+    principal: Principal = Depends(get_current_principal),
+    session: AsyncSession = Depends(get_db, scope="function"),
+) -> CaseList:
+    return await cases.case_list(session, principal, limit)

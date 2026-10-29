@@ -27,7 +27,7 @@ from app.modules.files.service import (
 )
 from app.modules.funding.service import allocated_paise, record_allocation
 from app.modules.notifications.service import publish_case_update
-from app.modules.problems.models import Cluster, Report, Support, WorkOrder
+from app.modules.problems.models import Cluster, Report, Support, Verification, WorkOrder
 from app.modules.problems.schemas import (
     CompleteWorkOrder,
     EvidencePhotoRead,
@@ -407,6 +407,16 @@ async def evidence_for_order(
                 verdict_label=selection.verdict_label,
             )
         )
+    returned_comment = None
+    if cluster.status == Status.IN_PROGRESS and selection.after_round is not None:
+        # The round on show was returned; its verdict carries the reason.
+        returned_comment = await session.scalar(
+            select(Verification.comment).where(
+                Verification.work_order_id == work.id,
+                Verification.round == selection.after_round,
+                Verification.verdict.is_(False),
+            )
+        )
     return EvidenceRead(
         report_code=anchor.code,
         status=Status(cluster.status),
@@ -415,4 +425,5 @@ async def evidence_for_order(
         after_round=selection.after_round,
         card_url=card_url,
         verdict_label=selection.verdict_label,
+        returned_comment=returned_comment,
     )

@@ -1035,6 +1035,56 @@
         }
       }
     },
+    "/api/v1/cases": {
+      "get": {
+        "tags": [
+          "Cases"
+        ],
+        "summary": "Case List",
+        "operationId": "case_list_api_v1_cases_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/statements": {
       "get": {
         "tags": [
@@ -1875,6 +1925,40 @@
               "default": 50,
               "title": "Limit"
             }
+          },
+          {
+            "name": "before_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before At"
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
           }
         ],
         "responses": {
@@ -2455,6 +2539,27 @@
         "type": "object",
         "title": "AssignCluster"
       },
+      "AuditCursor": {
+        "properties": {
+          "before_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Before At"
+          },
+          "before_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Before Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before_at",
+          "before_id"
+        ],
+        "title": "AuditCursor",
+        "description": "Pass both values back to read the next, older page."
+      },
       "AuditList": {
         "properties": {
           "items": {
@@ -2463,6 +2568,16 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -2513,6 +2628,30 @@
               }
             ],
             "title": "Reason"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
           }
         },
         "type": "object",
@@ -2527,6 +2666,158 @@
           "reason"
         ],
         "title": "AuditRead"
+      },
+      "CaseList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CaseRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CaseList"
+      },
+      "CaseRead": {
+        "properties": {
+          "cluster_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cluster Id"
+          },
+          "report_code": {
+            "type": "string",
+            "title": "Report Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProblemStatus"
+          },
+          "waiting_on": {
+            "type": "string",
+            "enum": [
+              "department",
+              "officer",
+              "citizen",
+              "none"
+            ],
+            "title": "Waiting On"
+          },
+          "status_changed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Status Changed At"
+          },
+          "work_order_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Order Id"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Round"
+          },
+          "department_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Name"
+          },
+          "officer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Officer Name"
+          },
+          "allocated_paise": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocated Paise"
+          },
+          "allocated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocated At"
+          },
+          "allocated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocated By Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cluster_id",
+          "report_code",
+          "title",
+          "category",
+          "status",
+          "waiting_on",
+          "status_changed_at",
+          "work_order_id",
+          "department_name",
+          "officer_name",
+          "allocated_at",
+          "allocated_by_name"
+        ],
+        "title": "CaseRead",
+        "description": "One case from prioritisation to citizen verification, with its allocation."
       },
       "Category": {
         "type": "string",
@@ -2860,6 +3151,17 @@
               }
             ],
             "title": "Verdict Label"
+          },
+          "returned_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned Comment"
           }
         },
         "type": "object",
@@ -3185,6 +3487,18 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
           }
         },
         "type": "object",
@@ -4641,6 +4955,17 @@
               }
             ],
             "title": "Verdict Label"
+          },
+          "returned_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned Comment"
           },
           "work_order_id": {
             "type": "string",

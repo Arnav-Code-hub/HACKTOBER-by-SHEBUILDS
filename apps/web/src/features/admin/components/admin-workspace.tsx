@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { PageHeading } from "@/components/workspace/page-heading";
-import { ActionForm } from "@/components/workspace/action-form";
+import { CaseTracker } from "@/features/cases/components/case-tracker";
+import {
+  ActionForm,
+  type FormValues,
+} from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { STATUS_DISPLAY } from "@/components/workspace/status-badge";
 import { useInvalidate } from "@/lib/api/hooks";
@@ -16,21 +20,11 @@ import { formatPaise } from "@/lib/money";
 import {
   changeUserRole,
   type AdminUser,
-  type AuditEvent,
   type Organization,
   type Summary,
 } from "../api";
-import {
-  useAdminSummary,
-  useAdminUsers,
-  useAuditEvents,
-  useOrganizations,
-} from "../hooks";
-
-const dateTime = new Intl.DateTimeFormat("en-IN", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { useAdminSummary, useAdminUsers, useOrganizations } from "../hooks";
+import { AuditTrail } from "./audit-trail";
 
 /**
  * Government and super administrators: district progress, recorded funding
@@ -42,7 +36,6 @@ export function AdminWorkspace() {
   const isSuperAdmin =
     state.status === "authenticated" && state.profile.role === "super_admin";
   const summary = useAdminSummary();
-  const audit = useAuditEvents();
 
   return (
     <>
@@ -96,48 +89,9 @@ export function AdminWorkspace() {
         </>
       )}
 
-      <div className="jm-section">
-        <RecordList
-          title="Audit trail"
-          description="The latest recorded actions in your scope, newest first."
-          columns={[
-            {
-              header: "When",
-              cell: (e: AuditEvent) => dateTime.format(new Date(e.at)),
-            },
-            {
-              header: "Who",
-              cell: (e: AuditEvent) => (
-                <>
-                  {e.actor_name}
-                  <br />
-                  <span className="jm-small">{ROLE_LABEL[e.actor_role]}</span>
-                </>
-              ),
-            },
-            {
-              header: "Action",
-              cell: (e: AuditEvent) => (
-                <>
-                  <code>{e.action}</code>
-                  <br />
-                  <span className="jm-small">
-                    {e.entity_type} {e.entity_id}
-                  </span>
-                </>
-              ),
-            },
-            { header: "Reason", cell: (e: AuditEvent) => e.reason ?? "—" },
-          ]}
-          rows={audit.data?.items}
-          isLoading={audit.isLoading}
-          error={audit.error}
-          onRefresh={() => void audit.refetch()}
-          isRefreshing={audit.isFetching}
-          emptyMessage="No actions have been recorded yet."
-          rowKey={(e) => e.id}
-        />
-      </div>
+      <CaseTracker description="Every prioritised and funded case in your scope, and who must act next." />
+
+      <AuditTrail />
 
       {isSuperAdmin && <UserAdministration />}
     </>
@@ -220,6 +174,91 @@ function StatusCounts({
   );
 }
 
+type Access = {
+  role: AdminUser["role"];
+  district_id: string | null;
+  department_id: string | null;
+  institute_id: string | null;
+  organization_id: string | null;
+};
+
+const DEPARTMENT_ROLES: readonly AdminUser["role"][] = [
+  "department",
+  "officer",
+];
+const INSTITUTE_ROLES: readonly AdminUser["role"][] = [
+  "student",
+  "faculty",
+  "institute",
+];
+
+function currentAccess(user: AdminUser): Access {
+  return {
+    role: user.role,
+    district_id: user.district_id,
+    department_id: user.department_id,
+    institute_id: user.institute_id,
+    organization_id: user.organization_id ?? null,
+  };
+}
+
+/** The access the API will store: scopes the role does not use are cleared. */
+export function proposedAccess(values: FormValues): Access {
+  const role = values.role as AdminUser["role"];
+  const id = (key: string) => (values[key] ? String(values[key]) : null);
+  return {
+    role,
+    district_id: id("district_id"),
+    department_id: DEPARTMENT_ROLES.includes(role) ? id("department_id") : null,
+    institute_id: INSTITUTE_ROLES.includes(role) ? id("institute_id") : null,
+    organization_id: role === "industry" ? id("organization_id") : null,
+  };
+}
+
+/** The scope a role needs before the API will accept it, or null. */
+export function accessProblem(access: Access): string | null {
+  const label = ROLE_LABEL[access.role];
+  if (access.role !== "super_admin" && !access.district_id)
+    return `${label} accounts need a district.`;
+  if (DEPARTMENT_ROLES.includes(access.role) && !access.department_id)
+    return `${label} accounts need a department in that district.`;
+  if (INSTITUTE_ROLES.includes(access.role) && !access.institute_id)
+    return `${label} accounts need an institute in that district.`;
+  if (access.role === "industry" && !access.organization_id)
+    return `${label} accounts need an industry organization in that district.`;
+  return null;
+}
+
+/** A named before-and-after comparison shown before the change is applied. */
+export function accessPreview(
+  name: string,
+  before: Access,
+  after: Access,
+  orgName: (id: string | null) => string,
+) {
+  const rows: [string, string, string][] = [
+    ["Role", ROLE_LABEL[before.role], ROLE_LABEL[after.role]],
+    ["District", orgName(before.district_id), orgName(after.district_id)],
+    ["Department", orgName(before.department_id), orgName(after.department_id)],
+    ["Institute", orgName(before.institute_id), orgName(after.institute_id)],
+    [
+      "Industry organization",
+      orgName(before.organization_id),
+      orgName(after.organization_id),
+    ],
+  ];
+  const lines = rows
+    .filter(([, from, to]) => !(from === "—" && to === "—"))
+    .map(([field, from, to]) =>
+      from === to ? `${field}: ${to} (unchanged)` : `${field}: ${from} → ${to}`,
+    );
+  return [
+    `Change access for ${name}?`,
+    ...lines,
+    "Their access changes on their next request, and the change is audited with your reason.",
+  ].join("\n");
+}
+
 const SELF_CHANGE =
   "You cannot change your own role or scope. Another super administrator must make this change.";
 
@@ -237,10 +276,21 @@ function UserAdministration() {
   const orgs = organizations.data?.items ?? [];
   const orgName = (id: string | null | undefined) =>
     id ? (orgs.find((o) => o.id === id)?.name ?? id) : "—";
-  const options = (type: Organization["type"]) =>
-    orgs
-      .filter((o) => o.type === type)
-      .map((o) => ({ value: o.id, label: o.name }));
+  const districts = orgs
+    .filter((o) => o.type === "district")
+    .map((o) => ({ value: o.id, label: o.name }));
+  // Departments, institutes and industry organizations belong to a district;
+  // only those in the chosen district are offered.
+  const inDistrict =
+    (type: Organization["type"]) => (values: Record<string, string>) =>
+      orgs
+        .filter(
+          (o) =>
+            o.type === type &&
+            Boolean(values.district_id) &&
+            o.parent_id === values.district_id,
+        )
+        .map((o) => ({ value: o.id, label: o.name }));
 
   return (
     <div className="jm-panel-grid jm-section">
@@ -316,28 +366,31 @@ function UserAdministration() {
                 label: "District",
                 kind: "select",
                 defaultValue: user.district_id ?? "",
-                options: options("district"),
+                options: districts,
               },
               {
                 name: "department_id",
                 label: "Department",
                 kind: "select",
                 defaultValue: user.department_id ?? "",
-                options: options("department"),
+                options: inDistrict("department"),
+                hint: "Choose a district first; only its organizations are listed.",
               },
               {
                 name: "institute_id",
                 label: "Institute",
                 kind: "select",
                 defaultValue: user.institute_id ?? "",
-                options: options("institute"),
+                options: inDistrict("institute"),
+                hint: "Choose a district first; only its organizations are listed.",
               },
               {
                 name: "organization_id",
                 label: "Industry organization",
                 kind: "select",
                 defaultValue: user.organization_id ?? "",
-                options: options("industry"),
+                options: inDistrict("industry"),
+                hint: "Choose a district first; only its organizations are listed.",
               },
               {
                 name: "reason",
@@ -348,8 +401,14 @@ function UserAdministration() {
               },
             ]}
             submitLabel="Apply change"
+            validate={(values) => accessProblem(proposedAccess(values))}
             confirm={(values) =>
-              `Change ${user.display_name || user.email || "this user"} to ${ROLE_LABEL[values.role as AdminUser["role"]]}? Their access changes on their next request, and the change is audited with your reason.`
+              accessPreview(
+                user.display_name || user.email || "this user",
+                currentAccess(user),
+                proposedAccess(values),
+                orgName,
+              )
             }
             onSubmit={async (values) => {
               // Guarded here as well as hidden above, in case the session

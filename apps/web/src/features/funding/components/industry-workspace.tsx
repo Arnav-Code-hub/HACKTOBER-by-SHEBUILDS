@@ -148,7 +148,7 @@ export function IndustryWorkspace() {
           error={pledges.error}
           onRefresh={() => void pledges.refetch()}
           isRefreshing={pledges.isFetching}
-          emptyMessage="Your organisation has not pledged yet."
+          emptyMessage="You have not recorded a pledge yet."
           rowKey={(p) => p.id}
         />
       </div>

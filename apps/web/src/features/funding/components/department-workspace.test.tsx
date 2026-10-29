@@ -23,6 +23,7 @@ function routes(clusters: Record<string, unknown>[]) {
       items: [{ id: "o1", display_name: "Asha (Officer)", email: null }],
     }),
     "GET statements": () => ({ items: [] }),
+    "GET cases": () => ({ items: [] }),
   };
 }
 

@@ -76,6 +76,8 @@ export const evidenceSchema = z.object({
   after_round: z.number().int().min(1).nullable().optional(),
   card_url: httpsUrl.nullable(),
   verdict_label: z.string().nullable().optional(),
+  /** The citizen's reason when the round shown was returned. */
+  returned_comment: z.string().nullable().optional(),
 });
 export type Evidence = z.infer<typeof evidenceSchema>;
 

@@ -1,7 +1,7 @@
 """Oversight contracts."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,6 +47,8 @@ class OrganizationRead(BaseModel):
     id: UUID
     type: Literal["district", "department", "institute", "industry"]
     name: str
+    # The district a department, institute or industry belongs to.
+    parent_id: UUID | None = None
 
 
 class OrganizationList(BaseModel):
@@ -62,10 +64,21 @@ class AuditRead(BaseModel):
     entity_type: str
     entity_id: UUID
     reason: str | None
+    # Recorded field values; contact details are never included.
+    before: dict[str, Any] | None = None
+    after: dict[str, Any] | None = None
+
+
+class AuditCursor(BaseModel):
+    """Pass both values back to read the next, older page."""
+
+    before_at: datetime
+    before_id: UUID
 
 
 class AuditList(BaseModel):
     items: list[AuditRead]
+    next: AuditCursor | None = None
 
 
 class AdminSummary(BaseModel):

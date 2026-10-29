@@ -1,11 +1,13 @@
 """Oversight and privileged administration HTTP endpoints."""
 
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.errors import ValidationError
 from app.core.security import Principal, get_current_principal
 from app.modules.audit import service
 from app.modules.audit.schemas import (
@@ -14,6 +16,7 @@ from app.modules.audit.schemas import (
     AdminUserList,
     AdminUserRead,
     AdminUserStatusChange,
+    AuditCursor,
     AuditList,
     OrganizationList,
 )
@@ -48,10 +51,19 @@ async def organizations(
 @router.get("/admin/audit", response_model=AuditList)
 async def audit(
     limit: int = Query(default=50, ge=1, le=200),
+    before_at: datetime | None = None,
+    before_id: UUID | None = None,
     principal: Principal = Depends(get_current_principal),
     session: AsyncSession = Depends(get_db, scope="function"),
 ) -> AuditList:
-    return await service.audit_list(session, principal, limit)
+    if (before_at is None) != (before_id is None):
+        raise ValidationError("Pass both before_at and before_id to read older events.")
+    cursor = (
+        AuditCursor(before_at=before_at, before_id=before_id)
+        if before_at is not None and before_id is not None
+        else None
+    )
+    return await service.audit_list(session, principal, limit, cursor)
 
 
 @router.patch("/admin/users/{identity}", response_model=AdminUserRead)

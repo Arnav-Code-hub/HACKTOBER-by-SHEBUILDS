@@ -17,6 +17,7 @@ import { AdminWorkspace } from "./admin-workspace";
 afterEach(() => vi.unstubAllGlobals());
 
 const oversight = {
+  "GET cases": () => ({ items: [] }),
   "GET admin/summary": () => ({
     district_name: "Yadgir",
     reports_by_status: { reported: 4, verified: 2, citizen_verified: 1 },
@@ -79,7 +80,12 @@ describe("Admin workspace", () => {
       "GET organizations": () => ({
         items: [
           { id: "d1", type: "district", name: "Yadgir" },
-          { id: "dep1", type: "department", name: "Rural Water Supply" },
+          {
+            id: "dep1",
+            type: "department",
+            name: "Rural Water Supply",
+            parent_id: "d1",
+          },
         ],
       }),
       "PATCH admin/users/u7": () => ({
@@ -141,7 +147,12 @@ describe("Admin workspace", () => {
       "GET organizations": () => ({
         items: [
           { id: "d1", type: "district", name: "Yadgir" },
-          { id: "csr1", type: "industry", name: "Demo sponsor" },
+          {
+            id: "csr1",
+            type: "industry",
+            name: "Demo sponsor",
+            parent_id: "d1",
+          },
         ],
       }),
       "PATCH admin/users/u9": () => ({
@@ -201,5 +212,138 @@ describe("Admin workspace", () => {
     ).toBeTruthy();
     expect(screen.queryByText("Apply change")).toBeNull();
     expect(api.to("PATCH", "admin/users/staff-1")).toHaveLength(0);
+  });
+
+  it("pages back through older audit events and shows what changed", async () => {
+    signInAs("gov_admin");
+    const event = (id: string, at: string, extra = {}) => ({
+      id,
+      at,
+      actor_name: "Asha",
+      actor_role: "department",
+      action: "cluster.funded",
+      entity_type: "cluster",
+      entity_id: "c1",
+      reason: null,
+      ...extra,
+    });
+    const api = installFakeApi({
+      ...oversight,
+      "GET admin/audit": (call) =>
+        call.url.searchParams.get("before_id") === "e1"
+          ? { items: [event("e0", "2026-10-20T10:00:00Z")], next: null }
+          : {
+              items: [
+                event("e1", "2026-10-25T10:00:00Z", {
+                  action: "cluster.inputs_updated",
+                  before: { infrastructure_gap: 40 },
+                  after: { infrastructure_gap: 70 },
+                }),
+              ],
+              next: { before_at: "2026-10-25T10:00:00Z", before_id: "e1" },
+            },
+    });
+    await renderWorkspace(<AdminWorkspace />);
+    await waitFor(() =>
+      expect(screen.getByText("cluster.inputs_updated")).toBeTruthy(),
+    );
+    expect(screen.getByText("infrastructure gap")).toBeTruthy();
+    expect(screen.getByText("40")).toBeTruthy();
+    expect(screen.getByText("70")).toBeTruthy();
+
+    await act(async () =>
+      fireEvent.click(screen.getByText("Load older events")),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("cluster.funded")).toBeTruthy(),
+    );
+    const older = api
+      .to("GET", "admin/audit")
+      .find((c) => c.url.searchParams.get("before_id") === "e1");
+    expect(older?.url.searchParams.get("before_at")).toBe(
+      "2026-10-25T10:00:00Z",
+    );
+    expect(
+      screen.getByText("You have reached the first recorded event."),
+    ).toBeTruthy();
+  });
+
+  it("offers only the chosen district's organizations and previews the access change", async () => {
+    signInAs("super_admin");
+    const user = {
+      id: "u5",
+      display_name: "Meera",
+      email: "meera@example.test",
+      role: "citizen",
+      district_id: "d1",
+      department_id: null,
+      institute_id: null,
+      organization_id: null,
+    };
+    const api = installFakeApi({
+      ...oversight,
+      "GET admin/users": () => ({ items: [user] }),
+      "GET organizations": () => ({
+        items: [
+          { id: "d1", type: "district", name: "Yadgir" },
+          { id: "d2", type: "district", name: "Raichur" },
+          {
+            id: "w1",
+            type: "department",
+            name: "Water (Yadgir)",
+            parent_id: "d1",
+          },
+          {
+            id: "w2",
+            type: "department",
+            name: "Water (Raichur)",
+            parent_id: "d2",
+          },
+        ],
+      }),
+      "PATCH admin/users/u5": () => ({ ...user, role: "officer" }),
+    });
+    await renderWorkspace(<AdminWorkspace />);
+    await waitFor(() => expect(screen.getByText("Meera")).toBeTruthy());
+    fireEvent.click(screen.getByText("Open"));
+
+    const department = screen.getByLabelText(/^Department/);
+    const offered = () =>
+      [...department.querySelectorAll("option")].map((o) => o.textContent);
+    expect(offered()).toEqual(["Choose…", "Water (Yadgir)"]);
+
+    fireEvent.change(screen.getByLabelText(/^Role/), {
+      target: { value: "officer" },
+    });
+    fireEvent.change(screen.getByLabelText(/Reason for the change/), {
+      target: { value: "New field officer" },
+    });
+    // An officer without a department would be refused; nothing is sent.
+    fireEvent.click(screen.getByText("Apply change"));
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /Officer accounts need a department/,
+    );
+    expect(api.to("PATCH", "admin/users/u5")).toHaveLength(0);
+
+    fireEvent.change(department, { target: { value: "w1" } });
+    // Moving district clears a department that belongs to the old one.
+    fireEvent.change(screen.getByLabelText(/^District/), {
+      target: { value: "d2" },
+    });
+    expect((department as HTMLSelectElement).value).toBe("");
+    expect(offered()).toEqual(["Choose…", "Water (Raichur)"]);
+    fireEvent.change(department, { target: { value: "w2" } });
+
+    fireEvent.click(screen.getByText("Apply change"));
+    const preview = screen.getByRole("alertdialog").textContent ?? "";
+    expect(preview).toMatch(/Role: Citizen → Officer/);
+    expect(preview).toMatch(/District: Yadgir → Raichur/);
+    expect(preview).toMatch(/Department: — → Water \(Raichur\)/);
+    await act(async () => fireEvent.click(screen.getByText("Confirm")));
+    expect(api.to("PATCH", "admin/users/u5")[0]!.body).toMatchObject({
+      role: "officer",
+      district_id: "d2",
+      department_id: "w2",
+    });
   });
 });

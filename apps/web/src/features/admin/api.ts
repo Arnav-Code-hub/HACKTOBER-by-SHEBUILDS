@@ -31,9 +31,29 @@ export const auditEventSchema = z.object({
   entity_type: z.string().min(1),
   entity_id: z.string().min(1),
   reason: z.string().nullable(),
+  before: z.record(z.unknown()).nullable().optional(),
+  after: z.record(z.unknown()).nullable().optional(),
 });
 export type AuditEvent = z.infer<typeof auditEventSchema>;
-export const auditListSchema = listSchema(auditEventSchema);
+
+export const auditCursorSchema = z.object({
+  before_at: z.string().datetime(),
+  before_id: z.string().min(1),
+});
+export type AuditCursor = z.infer<typeof auditCursorSchema>;
+export const auditListSchema = listSchema(auditEventSchema).extend({
+  next: auditCursorSchema.nullable().optional(),
+});
+
+export const AUDIT_PAGE_SIZE = 50;
+
+/** The page of events older than `cursor`. */
+export function fetchOlderAudit(api: ApiClient, cursor: AuditCursor) {
+  return api.request("admin/audit", {
+    query: { limit: AUDIT_PAGE_SIZE, ...cursor },
+    schema: auditListSchema,
+  });
+}
 
 const nullableId = z.string().min(1).nullable();
 
@@ -54,6 +74,8 @@ export const organizationSchema = z.object({
   id: z.string().min(1),
   type: z.enum(["district", "department", "institute", "industry"]),
   name: z.string().min(1),
+  /** The district a department, institute or industry belongs to. */
+  parent_id: z.string().min(1).nullable().optional(),
 });
 export type Organization = z.infer<typeof organizationSchema>;
 export const organizationListSchema = listSchema(organizationSchema);

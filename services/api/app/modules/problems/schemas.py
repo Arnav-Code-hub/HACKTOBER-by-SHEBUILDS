@@ -262,6 +262,8 @@ class EvidenceRead(BaseModel):
     after_round: int | None
     card_url: str | None
     verdict_label: str | None = None
+    # The citizen's reason when the round shown was returned for correction.
+    returned_comment: str | None = None
 
 
 class VerificationRead(EvidenceRead):
@@ -271,6 +273,34 @@ class VerificationRead(EvidenceRead):
     round: int = Field(ge=1)
     can_verify: bool
     blocked_reason: str | None
+
+
+WaitingOn = Literal["department", "officer", "citizen", "none"]
+
+
+class CaseRead(BaseModel):
+    """One case from prioritisation to citizen verification, with its allocation."""
+
+    cluster_id: UUID
+    report_code: str
+    title: str
+    category: Category
+    status: ProblemStatus
+    # Who must act next: the department funds, the officer works, the
+    # citizen verifies; "none" once the citizen has confirmed the repair.
+    waiting_on: WaitingOn
+    status_changed_at: datetime
+    work_order_id: UUID | None
+    round: int | None = Field(default=None, ge=1)
+    department_name: str | None
+    officer_name: str | None
+    allocated_paise: int | None = Field(default=None, ge=0)
+    allocated_at: datetime | None
+    allocated_by_name: str | None
+
+
+class CaseList(BaseModel):
+    items: list[CaseRead]
 
 
 class VerifyWorkOrder(BaseModel):

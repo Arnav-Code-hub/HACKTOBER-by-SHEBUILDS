@@ -821,6 +821,63 @@ code {
   background: var(--jm-density-tier2);
 }
 
+/* ── Case tracker, correction brief, audit details ─────────────────────── */
+.jm-subheading {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--jm-muted);
+  margin: 1.2rem 0 0.4rem;
+}
+/* "Waiting on" is workflow state, so it stays neutral, not an accent. */
+.jm-waiting {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--jm-line);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.jm-waiting-none {
+  color: var(--jm-muted);
+  border-style: dashed;
+}
+.jm-correction-brief {
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 16px;
+  border: 1px solid var(--jm-density-tier3);
+  background: color-mix(in srgb, var(--jm-density-tier3) 7%, var(--jm-card));
+}
+.jm-correction-brief .jm-subheading {
+  margin-top: 0;
+}
+.jm-correction-brief blockquote {
+  margin: 0;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+.jm-confirm p {
+  white-space: pre-line;
+}
+.jm-change-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+.jm-change-list s {
+  color: var(--jm-muted);
+}
+.jm-load-older {
+  margin-top: 0.9rem;
+  align-items: center;
+}
+
 @media (max-width: 850px) {
   .jm-login-grid {
     gap: 2rem;

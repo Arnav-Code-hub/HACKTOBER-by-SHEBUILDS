@@ -314,6 +314,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Case List */
+        get: operations["case_list_api_v1_cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/statements": {
         parameters: {
             query?: never;
@@ -739,10 +756,27 @@ export interface components {
             /** New */
             new?: true | null;
         };
+        /**
+         * AuditCursor
+         * @description Pass both values back to read the next, older page.
+         */
+        AuditCursor: {
+            /**
+             * Before At
+             * Format: date-time
+             */
+            before_at: string;
+            /**
+             * Before Id
+             * Format: uuid
+             */
+            before_id: string;
+        };
         /** AuditList */
         AuditList: {
             /** Items */
             items: components["schemas"]["AuditRead"][];
+            next?: components["schemas"]["AuditCursor"] | null;
         };
         /** AuditRead */
         AuditRead: {
@@ -770,6 +804,60 @@ export interface components {
             entity_id: string;
             /** Reason */
             reason: string | null;
+            /** Before */
+            before?: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** CaseList */
+        CaseList: {
+            /** Items */
+            items: components["schemas"]["CaseRead"][];
+        };
+        /**
+         * CaseRead
+         * @description One case from prioritisation to citizen verification, with its allocation.
+         */
+        CaseRead: {
+            /**
+             * Cluster Id
+             * Format: uuid
+             */
+            cluster_id: string;
+            /** Report Code */
+            report_code: string;
+            /** Title */
+            title: string;
+            category: components["schemas"]["Category"];
+            status: components["schemas"]["ProblemStatus"];
+            /**
+             * Waiting On
+             * @enum {string}
+             */
+            waiting_on: "department" | "officer" | "citizen" | "none";
+            /**
+             * Status Changed At
+             * Format: date-time
+             */
+            status_changed_at: string;
+            /** Work Order Id */
+            work_order_id: string | null;
+            /** Round */
+            round?: number | null;
+            /** Department Name */
+            department_name: string | null;
+            /** Officer Name */
+            officer_name: string | null;
+            /** Allocated Paise */
+            allocated_paise?: number | null;
+            /** Allocated At */
+            allocated_at: string | null;
+            /** Allocated By Name */
+            allocated_by_name: string | null;
         };
         /**
          * Category
@@ -878,6 +966,8 @@ export interface components {
             card_url: string | null;
             /** Verdict Label */
             verdict_label?: string | null;
+            /** Returned Comment */
+            returned_comment?: string | null;
         };
         /**
          * FundCluster
@@ -1022,6 +1112,8 @@ export interface components {
             type: "district" | "department" | "institute" | "industry";
             /** Name */
             name: string;
+            /** Parent Id */
+            parent_id?: string | null;
         };
         /** PledgeCreate */
         PledgeCreate: {
@@ -1563,6 +1655,8 @@ export interface components {
             card_url: string | null;
             /** Verdict Label */
             verdict_label?: string | null;
+            /** Returned Comment */
+            returned_comment?: string | null;
             /**
              * Work Order Id
              * Format: uuid
@@ -2249,6 +2343,37 @@ export interface operations {
             };
         };
     };
+    case_list_api_v1_cases_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_statements_api_v1_statements_get: {
         parameters: {
             query?: {
@@ -2746,6 +2871,8 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                before_at?: string | null;
+                before_id?: string | null;
             };
             header?: never;
             path?: never;

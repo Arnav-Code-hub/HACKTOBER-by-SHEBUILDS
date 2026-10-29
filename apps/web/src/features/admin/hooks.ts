@@ -4,6 +4,7 @@ import { useApiQuery } from "@/lib/api/hooks";
 
 import {
   adminUserListSchema,
+  AUDIT_PAGE_SIZE,
   auditListSchema,
   organizationListSchema,
   summarySchema,
@@ -15,7 +16,7 @@ export function useAdminSummary() {
 
 export function useAuditEvents() {
   return useApiQuery(["admin", "audit"], "admin/audit", auditListSchema, {
-    query: { limit: 50 },
+    query: { limit: AUDIT_PAGE_SIZE },
   });
 }
 

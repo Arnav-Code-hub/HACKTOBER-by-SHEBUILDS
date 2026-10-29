@@ -5,18 +5,31 @@ import { useId, useState, type FormEvent } from "react";
 import { ApiError, newIdempotencyKey } from "@/lib/api/client";
 import { rupeesToPaise } from "@/lib/money";
 
+export type FieldOption = { value: string; label: string };
+
 export type FieldSpec = {
   name: string;
   label: string;
   kind: "text" | "textarea" | "number" | "select" | "money";
   required?: boolean;
-  options?: { value: string; label: string }[];
+  /**
+   * Select choices. A function receives the form's current raw values, so a
+   * choice can depend on another field; a selection that stops being offered
+   * is cleared.
+   */
+  options?: FieldOption[] | ((values: Record<string, string>) => FieldOption[]);
   maxLength?: number;
   min?: number;
   max?: number;
   hint?: string;
   defaultValue?: string;
 };
+
+function optionsFor(field: FieldSpec, values: Record<string, string>) {
+  return typeof field.options === "function"
+    ? field.options(values)
+    : (field.options ?? []);
+}
 
 /** Text and select values are strings; number fields are numbers; money is paise. */
 export type FormValues = Record<string, string | number>;
@@ -38,6 +51,7 @@ export function ActionForm({
   fields,
   submitLabel,
   confirm,
+  validate,
   onSubmit,
   disabled,
 }: {
@@ -47,6 +61,11 @@ export function ActionForm({
   submitLabel: string;
   /** When set, the action asks for confirmation with this text first. */
   confirm?: (values: FormValues) => string;
+  /**
+   * A check across fields, run before confirmation; a returned message is
+   * shown instead of sending a request the server would refuse.
+   */
+  validate?: (values: FormValues) => string | null;
   /** Resolves with an optional success message. */
   onSubmit: (
     values: FormValues,
@@ -129,6 +148,11 @@ export function ActionForm({
       );
       return;
     }
+    const problem = validate?.(values);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     if (confirm) {
       setError(null);
       setPending(values);
@@ -156,10 +180,27 @@ export function ActionForm({
                 HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
               >,
             ) => {
-              setRaw((previous) => ({
-                ...previous,
-                [field.name]: event.target.value,
-              }));
+              setRaw((previous) => {
+                const next = {
+                  ...previous,
+                  [field.name]: event.target.value,
+                };
+                // A dependent choice no longer offered is cleared, never
+                // submitted invisibly.
+                for (const other of fields) {
+                  if (
+                    other.kind === "select" &&
+                    typeof other.options === "function" &&
+                    next[other.name] &&
+                    !optionsFor(other, next).some(
+                      (option) => option.value === next[other.name],
+                    )
+                  ) {
+                    next[other.name] = "";
+                  }
+                }
+                return next;
+              });
               // Edited values are a different request, not a retry of the
               // failed one; reusing its key would be refused as a conflict.
               setKey(newIdempotencyKey());
@@ -177,7 +218,7 @@ export function ActionForm({
               ) : field.kind === "select" ? (
                 <select {...common}>
                   <option value="">Choose…</option>
-                  {field.options?.map((option) => (
+                  {optionsFor(field, raw).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

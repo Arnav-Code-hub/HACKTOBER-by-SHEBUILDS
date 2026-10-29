@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { PageHeading, countOf } from "@/components/workspace/page-heading";
+import { CaseTracker } from "@/features/cases/components/case-tracker";
 import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { ScoreBreakdown } from "@/components/workspace/score-breakdown";
@@ -295,6 +296,8 @@ export function DepartmentWorkspace() {
           />
         </div>
       </div>
+
+      <CaseTracker description="Cases your department must fund or has funded, from prioritisation to citizen verification." />
     </>
   );
 }
