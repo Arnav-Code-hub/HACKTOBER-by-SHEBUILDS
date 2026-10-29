@@ -28,10 +28,12 @@ def _client(api_key: str, timeout_seconds: int) -> "AsyncClient":
     from google.genai import types
 
     # No fallback model, automatic tool calls, retries or persistent chat.
+    # Gemini refuses a request deadline under 10 s; the caller's own
+    # asyncio timeout still bounds how long a citizen waits.
     return genai.Client(
         api_key=api_key,
         http_options=types.HttpOptions(
-            timeout=timeout_seconds * 1000,
+            timeout=max(timeout_seconds, 10) * 1000,
             retry_options=types.HttpRetryOptions(attempts=1),
         ),
     ).aio
