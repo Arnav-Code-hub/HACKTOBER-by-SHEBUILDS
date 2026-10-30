@@ -193,8 +193,15 @@ class ReportController extends Notifier<ReportState> {
         isAnalyzing: false,
         draft: state.draft.transcript != transcript
             ? state.draft
+            // The suggestion fills only details the citizen left empty;
+            // anything they entered stays theirs.
             : state.draft.copyWith(
                 analysis: analysis,
+                manualTitle: state.draft.manualTitle.trim().isEmpty
+                    ? analysis.title
+                    : state.draft.manualTitle,
+                manualCategory: state.draft.manualCategory ?? analysis.category,
+                manualSeverity: state.draft.manualSeverity ?? analysis.severity,
                 locationLabel: state.draft.locationLabel.isEmpty
                     ? analysis.mentionedLocation
                     : state.draft.locationLabel,

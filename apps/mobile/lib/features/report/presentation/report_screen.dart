@@ -44,6 +44,9 @@ class ReportScreen extends ConsumerStatefulWidget {
 
 class _ReportScreenState extends ConsumerState<ReportScreen> {
   late final TextEditingController _textController = TextEditingController();
+  late final TextEditingController _titleController = TextEditingController(
+    text: ref.read(reportControllerProvider).draft.manualTitle,
+  );
   bool _typing = false;
   ReportDraft? _savedDraft;
 
@@ -87,6 +90,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -129,6 +133,11 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
     // A matching cluster means the citizen should join rather than duplicate.
     ref.listen(reportControllerProvider, (previous, next) {
+      // A suggestion or a restored draft can set the title from outside the
+      // field; typing already matches, so the cursor is left alone then.
+      if (_titleController.text != next.draft.manualTitle) {
+        _titleController.text = next.draft.manualTitle;
+      }
       final uid = ref.read(currentUserProvider)?.uid;
       if (uid != null) {
         final store = ref.read(reportDraftStoreProvider);
@@ -280,7 +289,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             Text(strings.text('manual_suggestion_help')),
             const SizedBox(height: Insets.sm),
             TextFormField(
-              initialValue: state.draft.manualTitle,
+              controller: _titleController,
               enabled: !state.isBusy,
               decoration: InputDecoration(
                 labelText: strings.text('short_title'),
@@ -288,7 +297,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               onChanged: controller.updateManualTitle,
             ),
             const SizedBox(height: Insets.sm),
+            // Keyed by value: initialValue is read once, so a suggestion
+            // or restored draft rebuilds the field to show its choice.
             DropdownButtonFormField<DemandCategory>(
+              key: ValueKey(state.draft.manualCategory),
               initialValue: state.draft.manualCategory,
               decoration: InputDecoration(labelText: strings.text('category')),
               items: <DropdownMenuItem<DemandCategory>>[
@@ -306,6 +318,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             ),
             const SizedBox(height: Insets.sm),
             DropdownButtonFormField<Severity>(
+              key: ValueKey(state.draft.manualSeverity),
               initialValue: state.draft.manualSeverity ?? Severity.medium,
               decoration: InputDecoration(
                 labelText: strings.text('reported_severity'),
