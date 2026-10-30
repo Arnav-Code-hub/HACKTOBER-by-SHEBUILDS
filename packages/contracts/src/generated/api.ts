@@ -677,6 +677,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/council/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Config */
+        get: operations["config_api_v1_council_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/faculty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Faculty */
+        get: operations["faculty_api_v1_council_faculty_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/teams/{team_id}/supervisor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Supervisor */
+        get: operations["supervisor_api_v1_council_teams__team_id__supervisor_get"];
+        put?: never;
+        /** Assign */
+        post: operations["assign_api_v1_council_teams__team_id__supervisor_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assessments */
+        get: operations["assessments_api_v1_council_assessments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/submissions/{submission_id}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create */
+        post: operations["create_api_v1_council_submissions__submission_id__assessments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/assessments/{identity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assessment */
+        get: operations["assessment_api_v1_council_assessments__identity__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/assessments/{identity}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry */
+        post: operations["retry_api_v1_council_assessments__identity__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/council/assessments/{identity}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pdf */
+        get: operations["pdf_api_v1_council_assessments__identity__pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -748,6 +885,78 @@ export interface components {
             is_active: boolean;
             /** Reason */
             reason: string;
+        };
+        /** AssessmentDetail */
+        AssessmentDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Submission Id
+             * Format: uuid
+             */
+            submission_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "reviewing" | "incomplete" | "delivery_failed" | "available";
+            /** Completed Reviewers */
+            completed_reviewers: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Supervisor Name */
+            supervisor_name: string;
+            /** Report */
+            report: {
+                [key: string]: unknown;
+            } | null;
+            evidence: components["schemas"]["CouncilEvidence"];
+        };
+        /** AssessmentList */
+        AssessmentList: {
+            /** Items */
+            items: components["schemas"]["AssessmentRead"][];
+        };
+        /** AssessmentRead */
+        AssessmentRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Submission Id
+             * Format: uuid
+             */
+            submission_id: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "reviewing" | "incomplete" | "delivery_failed" | "available";
+            /** Completed Reviewers */
+            completed_reviewers: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Supervisor Name */
+            supervisor_name: string;
         };
         /** AssignCluster */
         AssignCluster: {
@@ -893,6 +1102,32 @@ export interface components {
             /** Expected Round */
             expected_round: number;
         };
+        /** CouncilEvidence */
+        CouncilEvidence: {
+            /** Title */
+            title: string;
+            /** Research Question */
+            research_question: string;
+            /** Findings */
+            findings: string;
+            /**
+             * Methods
+             * @default
+             */
+            methods: string;
+            /**
+             * Results
+             * @default
+             */
+            results: string;
+            /**
+             * Limitations
+             * @default
+             */
+            limitations: string;
+            /** Files */
+            files?: components["schemas"]["EvidenceFile"][];
+        };
         /**
          * CurrentUser
          * @description `GET /users/me`: the profile plus its district's display name.
@@ -923,6 +1158,13 @@ export interface components {
             /** District Name */
             district_name: string | null;
         };
+        /** EvidenceFile */
+        EvidenceFile: {
+            /** Name */
+            name: string;
+            /** Content */
+            content: string;
+        };
         /** EvidencePhotoRead */
         EvidencePhotoRead: {
             /** Url */
@@ -951,6 +1193,21 @@ export interface components {
             verdict_label?: string | null;
             /** Returned Comment */
             returned_comment?: string | null;
+        };
+        /** FacultyList */
+        FacultyList: {
+            /** Items */
+            items: components["schemas"]["FacultyRead"][];
+        };
+        /** FacultyRead */
+        FacultyRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Display Name */
+            display_name: string;
         };
         /**
          * FundCluster
@@ -1097,6 +1354,11 @@ export interface components {
             name: string;
             /** Parent Id */
             parent_id?: string | null;
+        };
+        /** PdfRead */
+        PdfRead: {
+            /** Content Base64 */
+            content_base64: string;
         };
         /** PledgeCreate */
         PledgeCreate: {
@@ -1505,6 +1767,21 @@ export interface components {
         SuggestionRequest: {
             /** Transcript */
             transcript: string;
+        };
+        /** SupervisorCreate */
+        SupervisorCreate: {
+            /**
+             * Faculty Id
+             * Format: uuid
+             */
+            faculty_id: string;
+        };
+        /** SupervisorRead */
+        SupervisorRead: {
+            /** Faculty Id */
+            faculty_id: string | null;
+            /** Display Name */
+            display_name: string | null;
         };
         /** SupportAck */
         SupportAck: {
@@ -3053,6 +3330,264 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffWorkloadList"];
+                };
+            };
+        };
+    };
+    config_api_v1_council_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+        };
+    };
+    faculty_api_v1_council_faculty_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacultyList"];
+                };
+            };
+        };
+    };
+    supervisor_api_v1_council_teams__team_id__supervisor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupervisorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_api_v1_council_teams__team_id__supervisor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupervisorCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupervisorRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assessments_api_v1_council_assessments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentList"];
+                };
+            };
+        };
+    };
+    create_api_v1_council_submissions__submission_id__assessments_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CouncilEvidence"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assessment_api_v1_council_assessments__identity__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_api_v1_council_assessments__identity__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssessmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pdf_api_v1_council_assessments__identity__pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PdfRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

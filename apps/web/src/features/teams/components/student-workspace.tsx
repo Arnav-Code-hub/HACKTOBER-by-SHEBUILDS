@@ -11,6 +11,7 @@ import type { Statement } from "@/features/problem-statements/api";
 import { useStatements } from "@/features/problem-statements/hooks";
 import { createSubmission, type Submission } from "@/features/projects/api";
 import { useMySubmissions } from "@/features/projects/hooks";
+import { StudentCouncil } from "@/features/council/components/council-panels";
 
 import { createTeam, type Team } from "../api";
 import { useMyTeams } from "../hooks";
@@ -225,6 +226,8 @@ export function StudentWorkspace() {
           />
         </div>
       </div>
+
+      <StudentCouncil submissions={submissions.data?.items} />
 
       <div className="jm-section">
         <RecordList

@@ -2267,6 +2267,406 @@
           }
         ]
       }
+    },
+    "/api/v1/council/config": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Config",
+        "operationId": "config_api_v1_council_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Config Api V1 Council Config Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/council/faculty": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Faculty",
+        "operationId": "faculty_api_v1_council_faculty_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FacultyList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/council/teams/{team_id}/supervisor": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Supervisor",
+        "operationId": "supervisor_api_v1_council_teams__team_id__supervisor_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Team Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupervisorRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Assign",
+        "operationId": "assign_api_v1_council_teams__team_id__supervisor_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "team_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Team Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupervisorCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupervisorRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/council/assessments": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Assessments",
+        "operationId": "assessments_api_v1_council_assessments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/council/submissions/{submission_id}/assessments": {
+      "post": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_v1_council_submissions__submission_id__assessments_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Submission Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CouncilEvidence"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/council/assessments/{identity}": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Assessment",
+        "operationId": "assessment_api_v1_council_assessments__identity__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/council/assessments/{identity}/retry": {
+      "post": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Retry",
+        "operationId": "retry_api_v1_council_assessments__identity__retry_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/council/assessments/{identity}/pdf": {
+      "get": {
+        "tags": [
+          "Council integration"
+        ],
+        "summary": "Pdf",
+        "operationId": "pdf_api_v1_council_assessments__identity__pdf_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2507,6 +2907,172 @@
           "reason"
         ],
         "title": "AdminUserStatusChange"
+      },
+      "AssessmentDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Submission Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "reviewing",
+              "incomplete",
+              "delivery_failed",
+              "available"
+            ],
+            "title": "Status"
+          },
+          "completed_reviewers": {
+            "type": "integer",
+            "title": "Completed Reviewers"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "supervisor_name": {
+            "type": "string",
+            "title": "Supervisor Name"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/CouncilEvidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "title",
+          "status",
+          "completed_reviewers",
+          "created_at",
+          "error",
+          "supervisor_name",
+          "report",
+          "evidence"
+        ],
+        "title": "AssessmentDetail"
+      },
+      "AssessmentList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AssessmentList"
+      },
+      "AssessmentRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Submission Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "reviewing",
+              "incomplete",
+              "delivery_failed",
+              "available"
+            ],
+            "title": "Status"
+          },
+          "completed_reviewers": {
+            "type": "integer",
+            "title": "Completed Reviewers"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "supervisor_name": {
+            "type": "string",
+            "title": "Supervisor Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "submission_id",
+          "title",
+          "status",
+          "completed_reviewers",
+          "created_at",
+          "error",
+          "supervisor_name"
+        ],
+        "title": "AssessmentRead"
       },
       "AssignCluster": {
         "properties": {
@@ -2917,6 +3483,62 @@
         ],
         "title": "CompleteWorkOrder"
       },
+      "CouncilEvidence": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "research_question": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Research Question"
+          },
+          "findings": {
+            "type": "string",
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Findings"
+          },
+          "methods": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Methods",
+            "default": ""
+          },
+          "results": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Results",
+            "default": ""
+          },
+          "limitations": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Limitations",
+            "default": ""
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceFile"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Files"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "research_question",
+          "findings"
+        ],
+        "title": "CouncilEvidence"
+      },
       "CurrentUser": {
         "properties": {
           "id": {
@@ -3019,6 +3641,29 @@
         ],
         "title": "CurrentUser",
         "description": "`GET /users/me`: the profile plus its district's display name."
+      },
+      "EvidenceFile": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "content"
+        ],
+        "title": "EvidenceFile"
       },
       "EvidencePhotoRead": {
         "properties": {
@@ -3124,6 +3769,43 @@
         ],
         "title": "EvidenceRead",
         "description": "Before/after evidence for one work order \u2014 for human review, not proof."
+      },
+      "FacultyList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FacultyRead"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "FacultyList"
+      },
+      "FacultyRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "display_name"
+        ],
+        "title": "FacultyRead"
       },
       "FundCluster": {
         "properties": {
@@ -3457,6 +4139,20 @@
           "name"
         ],
         "title": "OrganizationRead"
+      },
+      "PdfRead": {
+        "properties": {
+          "content_base64": {
+            "type": "string",
+            "title": "Content Base64"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content_base64"
+        ],
+        "title": "PdfRead"
       },
       "PledgeCreate": {
         "properties": {
@@ -4564,6 +5260,55 @@
           "transcript"
         ],
         "title": "SuggestionRequest"
+      },
+      "SupervisorCreate": {
+        "properties": {
+          "faculty_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Faculty Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "faculty_id"
+        ],
+        "title": "SupervisorCreate"
+      },
+      "SupervisorRead": {
+        "properties": {
+          "faculty_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty Id"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "faculty_id",
+          "display_name"
+        ],
+        "title": "SupervisorRead"
       },
       "SupportAck": {
         "properties": {

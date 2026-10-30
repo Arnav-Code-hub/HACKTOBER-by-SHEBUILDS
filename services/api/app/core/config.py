@@ -9,7 +9,7 @@ from functools import lru_cache
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, field_validator
+from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 Environment = Literal["development", "staging", "production"]
@@ -49,6 +49,35 @@ class Settings(BaseSettings):
     gemini_thinking_budget: int = Field(default=0, ge=-1, le=8192)
 
     maps_api_key: str = ""
+
+    council_enabled: bool = False
+    council_url: str = ""
+    council_service_key: SecretStr = SecretStr("")
+    council_allow_simulation: bool = False
+
+    @model_validator(mode="after")
+    def _council_configuration(self) -> "Settings":
+        if self.council_enabled:
+            parsed = urlsplit(self.council_url)
+            if (
+                (
+                    parsed.scheme != "https"
+                    and not (
+                        parsed.scheme == "http"
+                        and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+                    )
+                )
+                or not parsed.netloc
+                or parsed.username
+                or parsed.password
+                or parsed.path not in {"", "/"}
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("COUNCIL_URL must be an HTTPS origin (localhost HTTP is allowed).")
+            if len(self.council_service_key.get_secret_value()) < 32:
+                raise ValueError("COUNCIL_SERVICE_KEY must contain at least 32 characters.")
+        return self
 
     cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
 

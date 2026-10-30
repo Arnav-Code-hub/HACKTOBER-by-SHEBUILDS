@@ -19,6 +19,7 @@ from app.core.database import Base
 # --autogenerate sees the full schema. Add new modules here.
 from app.modules.audit import models as audit_models  # noqa: F401
 from app.modules.auth import models as auth_models  # noqa: F401
+from app.modules.council import models as council_models  # noqa: F401
 from app.modules.departments import models as departments_models  # noqa: F401
 from app.modules.files import models as files_models  # noqa: F401
 from app.modules.funding import models as funding_models  # noqa: F401

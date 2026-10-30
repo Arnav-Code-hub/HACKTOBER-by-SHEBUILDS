@@ -31,6 +31,8 @@ from app.shared.categories import Category
 # Explicit application tables. Never drop a schema, authentication tables,
 # extensions, or unrelated tables belonging to a hosted Postgres project.
 RESET_TABLES = (
+    "council_assessments",
+    "team_supervisors",
     "notifications",
     "upload_intents",
     "idempotency_keys",

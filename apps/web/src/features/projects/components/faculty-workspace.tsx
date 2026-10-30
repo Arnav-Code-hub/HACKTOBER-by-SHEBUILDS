@@ -8,6 +8,7 @@ import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
 import { useApi } from "@/lib/api/use-api";
+import { FacultyCouncil } from "@/features/council/components/council-panels";
 
 import { reviewSubmission, type Submission } from "../api";
 import { useInstituteSubmissions } from "../hooks";
@@ -55,6 +56,8 @@ export function FacultyWorkspace() {
         Solutions from teams at your institute. Each reviewer can review a
         submission once.
       </PageHeading>
+
+      <FacultyCouncil />
 
       <div className="jm-panel-grid">
         <RecordList

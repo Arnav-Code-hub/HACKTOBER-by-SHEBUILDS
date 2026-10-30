@@ -7,6 +7,7 @@ import { ActionForm } from "@/components/workspace/action-form";
 import { RecordList } from "@/components/workspace/record-list";
 import { useInvalidate } from "@/lib/api/hooks";
 import { useApi } from "@/lib/api/use-api";
+import { SupervisorPanel } from "@/features/council/components/council-panels";
 
 import { approveTeam, type Team } from "../api";
 import { useInstituteTeams } from "../hooks";
@@ -48,6 +49,8 @@ export function InstituteWorkspace() {
         Approved teams can submit solutions to published problem statements. You
         only see teams from your own institute.
       </PageHeading>
+
+      {team && <SupervisorPanel teamId={team.id} />}
 
       <div className="jm-panel-grid">
         <RecordList

@@ -7,8 +7,9 @@ pyproject.toml keeps the module seams real, so any module can be extracted into
 its own service later without changing a caller.
 """
 
+import asyncio
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +23,7 @@ from app.modules.analytics.router import router as analytics_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.service import DatabaseAuthenticator
+from app.modules.council.router import router as council_router
 from app.modules.departments.router import router as departments_router
 from app.modules.files.router import router as files_router
 from app.modules.funding.router import router as funding_router
@@ -55,6 +57,7 @@ MODULE_ROUTERS = (
     audit_router,
     notifications_router,
     analytics_router,
+    council_router,
 )
 
 
@@ -63,7 +66,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging()
     settings = get_settings()
     logger.info("api.startup", environment=settings.environment)
-    yield
+    council_task = None
+    if settings.council_enabled:
+        from app.persistence.council_worker import council_worker
+
+        council_task = asyncio.create_task(council_worker(settings))
+    try:
+        yield
+    finally:
+        if council_task is not None:
+            council_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await council_task
     logger.info("api.shutdown")
 
 
