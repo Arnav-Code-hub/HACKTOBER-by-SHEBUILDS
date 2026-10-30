@@ -671,6 +671,8 @@ code {
 }
 .jm-stack {
   display: grid;
+  /* One column that never grows past its container on narrow screens. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
   align-content: start;
   min-width: 0;
