@@ -281,6 +281,14 @@ code {
   border-top: 1px solid var(--jm-line);
   color: var(--jm-muted);
 }
+.jm-judge-access p {
+  margin: 0.75rem 0;
+}
+.jm-judge-access dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
 .jm-panel {
   background: var(--jm-card);
   border: 1px solid var(--jm-card-line);

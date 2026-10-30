@@ -109,6 +109,36 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
                       'Phone OTP, Google sign-in, and account registration '
                       'are not connected in the Day 1 live build.',
                     ),
+                    const SizedBox(height: Insets.lg),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(Insets.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Judge demo access',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: Insets.sm),
+                            const Text(
+                              'Copy these credentials into the sign-in fields:',
+                            ),
+                            const SizedBox(height: Insets.sm),
+                            const SelectableText(
+                              'Email: citizen@janmaang.example',
+                            ),
+                            const SelectableText('Password: 123456'),
+                            const SizedBox(height: Insets.sm),
+                            const Text(
+                              'Use this account to report problems, track complaints '
+                              'and verify repairs. This is a shared demonstration '
+                              'account; other judges may change its demo records.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

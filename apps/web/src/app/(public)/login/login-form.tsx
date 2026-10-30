@@ -8,6 +8,18 @@ import { SessionStatus } from "@/components/session-status";
 import { dashboardDestination } from "@/lib/auth/roles";
 import { authenticationError, useSession } from "@/lib/auth/session";
 
+const judgeAccounts = [
+  ["Panchayat", "panchayat@janmaang.example"],
+  ["Department", "department@janmaang.example"],
+  ["Officer", "officer@janmaang.example"],
+  ["Student", "student@janmaang.example"],
+  ["Institute", "institute@janmaang.example"],
+  ["Faculty", "faculty@janmaang.example"],
+  ["Industry / CSR", "industry@janmaang.example"],
+  ["Government Admin", "gov_admin@janmaang.example"],
+  ["Super Admin", "super_admin@janmaang.example"],
+] as const;
+
 export function LoginForm() {
   const { state, signIn, signOut } = useSession();
   const [email, setEmail] = useState("");
@@ -129,6 +141,48 @@ export function LoginForm() {
                 Need access? Contact your organization’s administrator to set up
                 your account and role.
               </p>
+              <section
+                className="jm-login-note jm-judge-access"
+                aria-labelledby="judge-access-title"
+              >
+                <h3 id="judge-access-title">Judge demo access</h3>
+                <p>
+                  Copy an email below and use the shared password:{" "}
+                  <code>123456</code>
+                </p>
+                <p>
+                  Each account has different responsibilities and permissions.
+                  Panchayat reviews complaints, Department records funding and
+                  assigns work, and Officer uploads repair evidence. The other
+                  accounts demonstrate academic, CSR and administration
+                  workflows. Sign out before switching roles.
+                </p>
+                <dl className="jm-details">
+                  {judgeAccounts.map(([role, email]) => (
+                    <div key={email}>
+                      <dt>{role}</dt>
+                      <dd>
+                        <code>{email}</code>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p>
+                  Citizen account: <code>citizen@janmaang.example</code>, same
+                  password. Use it in the{" "}
+                  <a
+                    className="jm-text-link"
+                    href="https://hacktober-by-she-builds.web.app"
+                  >
+                    citizen app
+                  </a>
+                  .
+                </p>
+                <p className="jm-small">
+                  Shared demonstration accounts. Other judges may change their
+                  demo records. Super Admin can change account access.
+                </p>
+              </section>
             </>
           ) : state.status === "authenticated" &&
             state.profile.role === "citizen" ? (
