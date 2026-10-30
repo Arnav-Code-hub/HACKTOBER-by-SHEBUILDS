@@ -47,37 +47,50 @@ class ApiClient {
   ///
   /// Unauthenticated `GET /health` (outside `/api/v1`), so no token is sent.
   /// Concurrent callers share one request; a failure is not cached, so the
-  /// next caller tries again.
+  /// next caller tries again. A waking host answers 502/503 or drops the
+  /// connection for up to about a minute, so attempts are spaced out rather
+  /// than spent back to back.
   Future<void> warmUp({
-    Duration timeout = const Duration(seconds: 75),
-    int attempts = 2,
-  }) => _warmUp ??= _pingHealth(timeout, attempts).catchError((Object error) {
+    Duration timeout = const Duration(seconds: 30),
+    int attempts = 40,
+    Duration pause = const Duration(seconds: 3),
+    Duration budget = const Duration(minutes: 2),
+  }) => _warmUp ??= _pingHealth(timeout, attempts, pause, budget).catchError((
+    Object error,
+  ) {
     _warmUp = null;
     throw error;
   });
 
-  Future<void> _pingHealth(Duration timeout, int attempts) async {
+  Future<void> _pingHealth(
+    Duration timeout,
+    int attempts,
+    Duration pause,
+    Duration budget,
+  ) async {
     final uri = _base.replace(path: '/health');
-    for (var attempt = 1; ; attempt++) {
+    final elapsed = Stopwatch()..start();
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      if (attempt > 1) await Future<void>.delayed(pause);
+      final remaining = budget - elapsed.elapsed;
+      if (remaining <= Duration.zero) break;
       try {
         final response = await _client
             .get(
               uri,
               headers: const <String, String>{'Accept': 'application/json'},
             )
-            .timeout(timeout);
+            .timeout(remaining < timeout ? remaining : timeout);
         if (response.statusCode >= 200 && response.statusCode < 300) return;
       } on TimeoutException {
-        // Fall through to the retry or the failure below.
+        // Retry below: the host may still be starting.
       } on http.ClientException {
-        // Same: the host may still be starting.
-      }
-      if (attempt >= attempts) {
-        throw const NetworkFailure(
-          'The server is starting up or unreachable. Retry in a minute.',
-        );
+        // Same.
       }
     }
+    throw const NetworkFailure(
+      'The server is starting up or unreachable. Retry in a minute.',
+    );
   }
 
   Future<Object?> get(

@@ -105,10 +105,46 @@ void main() {
         }),
       );
 
-      await expectLater(api.warmUp(), throwsA(isA<NetworkFailure>()));
+      Future<void> warm() => api.warmUp(attempts: 2, pause: Duration.zero);
+      await expectLater(warm(), throwsA(isA<NetworkFailure>()));
       expect(healthCalls, 2);
-      await expectLater(api.warmUp(), throwsA(isA<NetworkFailure>()));
+      await expectLater(warm(), throwsA(isA<NetworkFailure>()));
       expect(healthCalls, 4);
+      api.close();
+    });
+
+    test('keeps waiting while a sleeping host answers 503', () async {
+      var healthCalls = 0;
+      final api = ApiClient(
+        baseUrl: 'https://api.example.test',
+        token: () async => 'token',
+        client: MockClient((request) async {
+          healthCalls++;
+          return healthCalls <= 2
+              ? http.Response('starting', 503)
+              : http.Response('{"status":"ok"}', 200);
+        }),
+      );
+
+      await api.warmUp(pause: Duration.zero);
+      expect(healthCalls, 3);
+      api.close();
+    });
+
+    test('gives up once the time budget is spent', () async {
+      final api = ApiClient(
+        baseUrl: 'https://api.example.test',
+        token: () async => 'token',
+        client: MockClient((request) async => http.Response('starting', 503)),
+      );
+
+      await expectLater(
+        api.warmUp(
+          pause: const Duration(milliseconds: 20),
+          budget: const Duration(milliseconds: 100),
+        ),
+        throwsA(isA<NetworkFailure>()),
+      );
       api.close();
     });
   });

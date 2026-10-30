@@ -39,12 +39,13 @@ export function parseProfile(value: unknown, expectedUid: string): UserProfile {
 /**
  * Waits for a sleeping free-tier API host to wake before the profile request.
  * Unauthenticated `GET /health`; no token is sent. The caller's signal bounds
- * the total wait.
+ * the total wait. A waking host answers 502/503 or drops the connection for
+ * up to about a minute, so attempts keep going, spaced out, until then.
  */
 export async function wakeApi(
   apiOrigin: string,
   signal: AbortSignal,
-  { attempts = 2, pauseMs = 3_000 } = {},
+  { attempts = 25, pauseMs = 3_000 } = {},
 ): Promise<void> {
   for (let attempt = 1; ; attempt++) {
     try {

@@ -120,9 +120,23 @@ describe("API wake-up", () => {
     vi.stubGlobal("fetch", fetcher);
     await expect(
       wakeApi("https://api.example.com", new AbortController().signal, {
+        attempts: 2,
         pauseMs: 0,
       }),
     ).rejects.toBeInstanceOf(ProfileError);
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps waiting while a sleeping host answers 503", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("starting", { status: 503 }))
+      .mockResolvedValueOnce(new Response("starting", { status: 503 }))
+      .mockResolvedValue(new Response('{"status":"ok"}', { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+    await wakeApi("https://api.example.com", new AbortController().signal, {
+      pauseMs: 0,
+    });
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 });
