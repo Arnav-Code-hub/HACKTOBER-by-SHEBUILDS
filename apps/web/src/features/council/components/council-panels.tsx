@@ -21,6 +21,7 @@ import {
   type AssessmentDetail,
   type EvidenceFile,
 } from "../api";
+import { extractPdfText, MAX_PDF_BYTES } from "../pdf-text";
 
 const date = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" });
 const SOURCE_EXTENSIONS =
@@ -154,7 +155,8 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
       const next: EvidenceFile[] = [];
       for (const file of Array.from(selected)) {
         const extension = "." + file.name.split(".").pop()?.toLowerCase();
-        if (!SOURCE_EXTENSIONS.split(",").includes(extension))
+        const pdf = extension === ".pdf";
+        if (!pdf && !SOURCE_EXTENSIONS.split(",").includes(extension))
           throw new RangeError(`Unsupported evidence file: ${file.name}`);
         if (
           !/^[A-Za-z0-9][A-Za-z0-9_. -]{0,127}$/.test(file.name) ||
@@ -164,11 +166,22 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
           throw new RangeError(
             "Use plain filenames without folders or traversal.",
           );
-        if (file.size > 200000)
+        if (file.size > (pdf ? MAX_PDF_BYTES : 200000))
           throw new RangeError(`File is too large: ${file.name}`);
-        const content = new TextDecoder("utf-8", { fatal: true }).decode(
-          await file.arrayBuffer(),
-        );
+        // A PDF becomes text here; the council only ever receives text.
+        const content = pdf
+          ? await extractPdfText(await file.arrayBuffer()).catch((error) => {
+              throw error instanceof RangeError
+                ? new RangeError(`${file.name}: ${error.message}`)
+                : new RangeError(`Could not read the PDF: ${file.name}`);
+            })
+          : new TextDecoder("utf-8", { fatal: true }).decode(
+              await file.arrayBuffer(),
+            );
+        if (pdf && content.length > 50000)
+          throw new RangeError(
+            `${file.name} has more than 50,000 characters of text. Split it or submit the key sections.`,
+          );
         if (
           !content.trim() ||
           content.length > 50000 ||
@@ -177,7 +190,10 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
           )
         )
           throw new RangeError(`Invalid or oversized text file: ${file.name}`);
-        next.push({ name: file.name, content });
+        next.push({
+          name: pdf ? file.name.replace(/\.pdf$/i, "-pdf.txt") : file.name,
+          content,
+        });
       }
       if (new Set(next.map((f) => f.name.toLowerCase())).size !== next.length)
         throw new RangeError("Evidence filenames must be unique.");
@@ -202,12 +218,12 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
         grades.
       </p>
       <label>
-        Supporting text and source files
+        Supporting PDF, text and source files
         <input
           aria-label="Council evidence files"
           type="file"
           multiple
-          accept={SOURCE_EXTENSIONS}
+          accept={`.pdf,${SOURCE_EXTENSIONS}`}
           disabled={reading}
           onChange={(e) => {
             void readFiles(e.target.files);
@@ -216,8 +232,10 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
         />
       </label>
       <p className="jm-small">
-        Up to 20 UTF-8 files; 50,000 characters each; 200,000 characters total.
-        Files are read as evidence and never executed.
+        Up to 20 files; 50,000 characters each; 200,000 characters total. A
+        research or findings PDF (up to 10 MB, 50 pages) is converted to text in
+        your browser; scanned PDFs have no text to read. Files are read as
+        evidence and never executed.
       </p>
       {fileError && (
         <p className="jm-form-error" role="alert">

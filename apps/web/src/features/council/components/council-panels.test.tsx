@@ -11,6 +11,11 @@ import {
 
 vi.mock("@/lib/auth/session", () => harnessSessionModule);
 vi.mock("@/lib/config", () => harnessConfigModule);
+const pdf = vi.hoisted(() => ({ extract: vi.fn() }));
+vi.mock("../pdf-text", () => ({
+  MAX_PDF_BYTES: 10_000_000,
+  extractPdfText: pdf.extract,
+}));
 
 import {
   FacultyCouncil,
@@ -19,6 +24,15 @@ import {
 } from "./council-panels";
 
 afterEach(() => vi.unstubAllGlobals());
+
+/** jsdom's File lacks arrayBuffer(), which every supported browser provides. */
+function pdfFile(name: string) {
+  const file = new File(["%PDF-1.4"], name, { type: "application/pdf" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => new TextEncoder().encode("%PDF-1.4").buffer,
+  });
+  return file;
+}
 
 const submission = {
   id: "s1",
@@ -131,6 +145,75 @@ describe("Council integration", () => {
         /automatically shared with your assigned supervising faculty/,
       ),
     ).toBeTruthy();
+  });
+
+  it("sends a research PDF as extracted text evidence", async () => {
+    signInAs("student");
+    pdf.extract.mockResolvedValueOnce("[Page 1]\nBaseline: 12 hours down.");
+    const api = installFakeApi({
+      "GET council/config": () => ({ enabled: true }),
+      "GET council/assessments": () => ({ items: [] }),
+      "POST council/submissions/s1/assessments": () => ({
+        ...row,
+        status: "queued",
+        error: null,
+      }),
+    });
+    await renderWorkspace(<StudentCouncil submissions={[submission]} />);
+    await screen.findByText("Request an AI Council critique");
+    fireEvent.change(screen.getByLabelText("Council evidence files"), {
+      target: {
+        files: [pdfFile("findings.pdf")],
+      },
+    });
+    await screen.findByText("findings-pdf.txt");
+    fireEvent.change(screen.getByLabelText(/^Student submission/), {
+      target: { value: "s1" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Research question/), {
+      target: { value: "Does it work?" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Student findings/), {
+      target: { value: "See the attached findings." },
+    });
+    fireEvent.click(screen.getByText("Request council report"));
+    await waitFor(() =>
+      expect(api.to("POST", "council/submissions/s1/assessments")).toHaveLength(
+        1,
+      ),
+    );
+    expect(
+      api.to("POST", "council/submissions/s1/assessments")[0]!.body,
+    ).toMatchObject({
+      files: [
+        {
+          name: "findings-pdf.txt",
+          content: "[Page 1]\nBaseline: 12 hours down.",
+        },
+      ],
+    });
+  });
+
+  it("explains a PDF without text instead of submitting it", async () => {
+    signInAs("student");
+    pdf.extract.mockRejectedValueOnce(
+      new RangeError("This PDF has no selectable text (it may be scanned)."),
+    );
+    installFakeApi({
+      "GET council/config": () => ({ enabled: true }),
+      "GET council/assessments": () => ({ items: [] }),
+    });
+    await renderWorkspace(<StudentCouncil submissions={[submission]} />);
+    await screen.findByText("Request an AI Council critique");
+    fireEvent.change(screen.getByLabelText("Council evidence files"), {
+      target: {
+        files: [pdfFile("scan.pdf")],
+      },
+    });
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /scan\.pdf: This PDF has no selectable text/,
+    );
+    expect(screen.queryByText("scan-pdf.txt")).toBeNull();
   });
 
   it("shows incomplete reports without a PDF and retries explicitly", async () => {
