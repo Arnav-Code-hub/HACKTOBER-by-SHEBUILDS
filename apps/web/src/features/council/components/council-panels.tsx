@@ -142,6 +142,7 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
   const [files, setFiles] = useState<EvidenceFile[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const request = useRef({ body: "", key: "" });
 
   async function readFiles(selected: FileList | null) {
@@ -217,32 +218,66 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
         supervising faculty. The report is advisory and does not change faculty
         grades.
       </p>
-      <label>
-        Supporting PDF, text and source files
-        <input
-          aria-label="Council evidence files"
-          type="file"
-          multiple
-          accept={`.pdf,${SOURCE_EXTENSIONS}`}
-          disabled={reading}
-          onChange={(e) => {
-            void readFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
-      <p className="jm-small">
-        Up to 20 files; 50,000 characters each; 200,000 characters total. A
-        research or findings PDF (up to 10 MB, 50 pages) is converted to text in
-        your browser; scanned PDFs have no text to read. Files are read as
-        evidence and never executed.
+      <div
+        className={`jm-dropzone${dragging ? " is-dragging" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!reading) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!reading) void readFiles(e.dataTransfer.files);
+        }}
+      >
+        <span className="jm-dropzone-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+            <path
+              d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <div className="jm-dropzone-copy">
+          <p className="jm-dropzone-title">
+            Attach your research, findings or code
+          </p>
+          <p className="jm-small">
+            PDF, text, Markdown, CSV or source files. Drag them here or choose
+            files.
+          </p>
+        </div>
+        <label className="jm-button jm-dropzone-button">
+          {reading ? "Reading…" : "Choose files"}
+          <input
+            className="jm-visually-hidden"
+            aria-label="Council evidence files"
+            type="file"
+            multiple
+            accept={`.pdf,${SOURCE_EXTENSIONS}`}
+            disabled={reading}
+            onChange={(e) => {
+              void readFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+      <p className="jm-small" role="status">
+        {reading
+          ? "Reading your files. A PDF is converted to text in your browser."
+          : "Up to 20 files, 50,000 characters each. PDFs up to 10 MB and 50 pages are converted to text in your browser; scanned PDFs have no text to read. Files are read as evidence and never executed."}
       </p>
       {fileError && (
         <p className="jm-form-error" role="alert">
           {fileError}
           <button
             type="button"
-            className="jm-button jm-button-secondary"
+            className="jm-button jm-button-secondary jm-button-small"
             onClick={() => setFileError(null)}
           >
             Clear file error
@@ -250,10 +285,16 @@ function CouncilRequest({ submissions }: { submissions: Submission[] }) {
         </p>
       )}
       {files.length > 0 && (
-        <ul>
+        <ul className="jm-file-list" aria-label="Attached evidence">
           {files.map((f) => (
             <li key={f.name}>
-              {f.name}{" "}
+              <span className="jm-badge">
+                {f.name.endsWith("-pdf.txt") ? "PDF → text" : "Text"}
+              </span>
+              <span className="jm-file-name">{f.name}</span>
+              <span className="jm-small">
+                {f.content.length.toLocaleString("en-IN")} characters
+              </span>
               <button
                 type="button"
                 className="jm-button jm-button-secondary jm-button-small"

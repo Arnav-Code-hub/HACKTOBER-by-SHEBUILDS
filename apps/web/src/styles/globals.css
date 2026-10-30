@@ -704,6 +704,89 @@ code {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+/* AI Council evidence upload: a drop area with one clear button. */
+.jm-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.2rem 0 0.4rem;
+  padding: 1.1rem 1.2rem;
+  border: 1.5px dashed var(--jm-line);
+  border-radius: 20px;
+  background: var(--jm-paper);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.jm-dropzone.is-dragging {
+  border-color: var(--jm-on-surface);
+  background: color-mix(
+    in srgb,
+    var(--jm-accent-periwinkle) 22%,
+    var(--jm-paper)
+  );
+}
+.jm-dropzone-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--jm-accent-on-accent);
+  background: var(--jm-accent-periwinkle);
+}
+.jm-dropzone-copy {
+  flex: 1;
+  min-width: 0;
+}
+.jm-dropzone-copy p {
+  margin: 0;
+}
+.jm-dropzone-title {
+  font-weight: 700;
+}
+.jm-dropzone-button {
+  position: relative;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+.jm-dropzone-button:focus-within {
+  outline: 3px solid var(--jm-density-tier1);
+  outline-offset: 4px;
+}
+.jm-file-list {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.jm-file-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.9rem;
+  border: 1px solid var(--jm-card-line);
+  border-radius: 16px;
+  background: var(--jm-surface);
+}
+.jm-file-name {
+  /* Takes its own line on narrow screens instead of wrapping letter by letter. */
+  flex: 1 1 10rem;
+  min-width: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .jm-dropzone {
+    flex-wrap: wrap;
+  }
+  .jm-dropzone-button {
+    width: 100%;
+  }
+}
 .jm-tone-progress {
   color: var(--jm-on-surface);
   border-color: var(--jm-density-tier2);
